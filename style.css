@@ -1,0 +1,380 @@
+/* =====================================================
+   Koordinat desain: 430 x 932 (iPhone Pro Max)
+   ===================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+body {
+  background-color: #000;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.viewport-wrapper {
+  width: 430px;
+  height: 932px;
+  transform-origin: center center;
+  position: relative;
+}
+
+/* Bezel hitam + rangka titanium perak */
+.iphone-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 54px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow:
+    0 0 0 11px #050505,
+    0 0 0 13px #2e2e30,
+    0 0 0 18px #cdcdd2,
+    0 0 0 20px #86868b,
+    0 24px 60px rgba(0, 0, 0, 0.8);
+}
+
+/* Tombol fisik */
+.hw-btn {
+  position: absolute;
+  width: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #8e8e93, #d6d6da 50%, #8e8e93);
+}
+.hw-action   { left: -23px;  top: 168px; height: 38px; }
+.hw-vol-up   { left: -23px;  top: 243px; height: 64px; }
+.hw-vol-down { left: -23px;  top: 324px; height: 64px; }
+.hw-power    { right: -23px; top: 263px; height: 106px; }
+
+/* BACKGROUND UTAMA (nyatu untuk lock & passcode) */
+.lock-bg {
+  position: absolute;
+  inset: 0;
+  background: url('assets/1.png') center/cover no-repeat;
+  z-index: 1;
+  will-change: filter;
+}
+
+/* ===== SCREENS ===== */
+.screen {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 10;
+}
+.screen.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#screen-passcode {
+  z-index: 100;
+  background: transparent;
+  opacity: 1; /* fade dikerjakan per-elemen supaya efek glass tetap hidup */
+}
+#screen-passcode.open { pointer-events: auto; }
+
+#screen-home {
+  z-index: 200;
+  transition: opacity 0.45s ease;
+}
+
+/* ===== SYSTEM UI (status bar, island, home indicator) - tetap diam ===== */
+.system-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.status-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 65px;
+  padding: 0 45px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #2a2a2a;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.status-right { display: flex; align-items: center; }
+.ico-signal { margin-right: 10px; }
+.ico-wifi { margin-right: 7px; }
+
+.battery {
+  position: relative;
+  width: 31px;
+  height: 15px;
+  border-radius: 6px;
+  background: #a3a3a6;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.battery-level { position: absolute; left: 0; top: 0; bottom: 0; width: 40%; background: #3a3a3c; }
+.battery-text { position: relative; font-size: 11px; font-weight: 700; color: #fff; letter-spacing: -0.2px; }
+
+.dynamic-island {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 125px;
+  height: 37px;
+  background: #000;
+  border-radius: 20px;
+}
+
+.home-indicator {
+  position: absolute;
+  bottom: 9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 5px;
+  background: #1c1c1e;
+  border-radius: 10px;
+}
+
+/* ===== KONTEN LOCK SCREEN (semua elemen diposisikan absolut sesuai desain) ===== */
+.lock-content {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  touch-action: none;
+  /* JANGAN pakai will-change: opacity di sini, bikin backdrop-filter kartu mati */
+}
+.passcode-mode .lock-content { pointer-events: none; }
+
+/* Fade lock screen per-elemen (bukan di container) biar glass kartu tetap blur */
+.clock-section,
+.notif-header,
+.notif-item,
+.bottom-actions,
+.swipe-up {
+  opacity: var(--fade, 1);
+}
+
+.clock-section {
+  position: absolute;
+  top: 96px; left: 0; right: 0;
+  text-align: center;
+  color: #5c5c5e;
+}
+.date { font-size: 24px; font-weight: 600; line-height: 32px; letter-spacing: -0.2px; }
+.time { font-size: 106px; font-weight: 700; line-height: 106px; letter-spacing: -4px; color: #606062; }
+
+.notif-header {
+  position: absolute;
+  top: 247px; left: 0; right: 0;
+  height: 30px;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.notif-header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.2px; color: #4a4a4c; }
+.close-btn {
+  position: relative;
+  width: 30px; height: 30px; border-radius: 15px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  transition: width 0.42s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s ease, transform 0.15s ease;
+}
+.close-btn:active { transform: scale(0.93); }
+.close-btn svg { transition: opacity 0.18s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+.close-btn .clear-label {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600; letter-spacing: -0.2px; color: #111;
+  white-space: nowrap;
+  opacity: 0; transform: scale(0.9);
+  transition: opacity 0.18s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.close-btn.expanded { width: 92px; background: rgba(255, 255, 255, 0.96); }
+.close-btn.expanded svg { opacity: 0; transform: rotate(90deg) scale(0.6); }
+.close-btn.expanded .clear-label { opacity: 1; transform: none; transition-delay: 0.1s; }
+
+.notif-list {
+  position: absolute;
+  top: 307px; left: 23px; right: 23px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== KARTU NOTIFIKASI (glass) ===== */
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  height: 62px;
+  padding: 0 14px 0 15px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+.notif-item.group { height: 123px; }
+
+.app-icon-wrapper { position: relative; width: 41px; height: 41px; margin: 10px 14px 0 0; flex-shrink: 0; }
+.app-icon-wrapper .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.app-badge {
+  position: absolute; bottom: -3px; right: -5px;
+  width: 20px; height: 20px;
+  border-radius: 6px; object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+.group-app-icon { width: 41px; height: 41px; border-radius: 50%; object-fit: cover; display: block; }
+
+.notif-content { flex: 1; min-width: 0; padding-top: 10px; }
+.notif-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.notif-title { font-size: 17px; font-weight: 600; line-height: 20px; color: #0a0a0a; letter-spacing: -0.2px; }
+.notif-time { font-size: 12px; line-height: 16px; margin-top: -2px; color: #6b6b6e; letter-spacing: -0.5px; }
+.notif-body { font-size: 14px; line-height: 20px; color: #2a2a2c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.notif-item.group .notif-body { white-space: normal; line-height: 21px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ===== TOMBOL BAWAH ===== */
+.bottom-actions {
+  position: absolute;
+  top: 830px; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 50px;
+}
+.action-btn {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: rgba(70, 70, 72, 0.5);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+.swipe-up {
+  position: absolute;
+  bottom: 30px; left: 0; right: 0;
+  text-align: center;
+  color: #4a4a4c;
+  font-size: 16px; font-weight: 500; line-height: 20px;
+  animation: nudge 2s infinite ease-in-out;
+}
+@keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+/* ===== ANIMASI (aktif hanya saat tap / lepas jari, bukan saat drag) ===== */
+.animating .lock-content { transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+.animating .clock-section,
+.animating .notif-header,
+.animating .notif-item,
+.animating .bottom-actions,
+.animating .swipe-up { transition: opacity 0.35s ease; }
+.animating .lock-bg { transition: filter 0.5s ease; }
+.animating .passcode-body { transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+.animating .passcode-container h2,
+.animating .passcode-dots,
+.animating .passcode-footer { transition: opacity 0.4s ease; }
+.animating .key { transition: opacity 0.4s ease, background 0.1s ease, transform 0.1s ease; }
+
+/* ===== PASSCODE SCREEN ===== */
+.passcode-body {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  will-change: transform;
+}
+
+.passcode-container {
+  position: relative; height: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  padding-top: 204px;
+}
+
+.passcode-container h2,
+.passcode-dots,
+.passcode-footer,
+.key {
+  opacity: var(--pfade, 0);
+}
+
+.passcode-container h2 { font-size: 21px; font-weight: 500; line-height: 27px; color: #3a3a3c; margin-bottom: 36px; letter-spacing: -0.2px; }
+
+.passcode-dots { display: flex; gap: 16px; margin-bottom: 47px; }
+.passcode-dots.shake { animation: shake 0.4s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-10px); }
+  40%, 80% { transform: translateX(10px); }
+}
+
+.dot { width: 17px; height: 17px; border-radius: 50%; border: 1.8px solid #2c2c2e; background: transparent; transition: background 0.15s ease; }
+.dot.filled { background: #2c2c2e; }
+
+.keypad { display: grid; grid-template-columns: repeat(3, 86px); gap: 18px 25px; }
+.key {
+  width: 86px; height: 86px; border-radius: 50%; border: none;
+  padding-bottom: 6px;
+  background: rgba(236, 236, 236, 0.62);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  color: #2a2a2c;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; font-family: inherit;
+  transition: background 0.1s ease, transform 0.1s ease;
+}
+.key:active { background: rgba(205, 205, 205, 0.85); transform: scale(0.95); }
+.key span { font-size: 44px; font-weight: 300; line-height: 44px; }
+.key small { font-size: 11px; font-weight: 500; line-height: 12px; letter-spacing: 2px; color: #3a3a3c; margin-top: 0; }
+.key-empty { background: transparent; box-shadow: none; pointer-events: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.key-del { background: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding-bottom: 0; }
+.key-del:active { background: rgba(0, 0, 0, 0.08); }
+
+.passcode-footer {
+  position: absolute;
+  bottom: 59px;
+  left: 0; right: 0;
+  display: flex; justify-content: space-between;
+  padding: 0 52px;
+  font-size: 19px; line-height: 24px; color: #3a3a3c; font-weight: 400;
+}
+
+.home-placeholder { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; color: #000; gap: 10px; }
+
+
+/* ===== CLEAR ALL: kartu geser keluar satu-satu, lalu header memudar ===== */
+.notif-item.clearing {
+  opacity: 0;
+  transform: translateX(-70px) scale(0.96);
+  pointer-events: none;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+}
+.notif-header.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
