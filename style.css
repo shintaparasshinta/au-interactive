@@ -10,8 +10,10 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* ===== BASE DESKTOP ===== */
 body {
   background-color: #000;
   height: 100vh;
@@ -57,7 +59,7 @@ body {
 .hw-vol-down { left: -23px;  top: 324px; height: 64px; }
 .hw-power    { right: -23px; top: 263px; height: 106px; }
 
-/* BACKGROUND UTAMA (nyatu untuk lock & passcode) */
+/* BACKGROUND UTAMA */
 .lock-bg {
   position: absolute;
   inset: 0;
@@ -80,24 +82,25 @@ body {
   pointer-events: auto;
 }
 
+/* LAYAR PASSCODE - KUNCI PERBAIKAN */
 #screen-passcode {
-  z-index: 100;
+  z-index: 1000; 
   background: transparent;
-  opacity: 1; /* fade dikerjakan per-elemen supaya efek glass tetap hidup */
+  opacity: 1; 
+  pointer-events: auto; 
 }
-#screen-passcode.open { pointer-events: auto; }
 
 #screen-home {
-  z-index: 200;
+  z-index: 2000;
   transition: opacity 0.45s ease;
 }
 
-/* ===== SYSTEM UI (status bar, island, home indicator) - tetap diam ===== */
+/* ===== SYSTEM UI ===== */
 .system-ui {
   position: absolute;
   inset: 0;
-  z-index: 2000;
-  pointer-events: none;
+  z-index: 3000; 
+  pointer-events: none; 
 }
 
 .status-bar {
@@ -154,17 +157,15 @@ body {
   border-radius: 10px;
 }
 
-/* ===== KONTEN LOCK SCREEN (semua elemen diposisikan absolut sesuai desain) ===== */
+/* ===== KONTEN LOCK SCREEN ===== */
 .lock-content {
   position: absolute;
   inset: 0;
   z-index: 10;
   touch-action: none;
-  /* JANGAN pakai will-change: opacity di sini, bikin backdrop-filter kartu mati */
 }
 .passcode-mode .lock-content { pointer-events: none; }
 
-/* Fade lock screen per-elemen (bukan di container) biar glass kartu tetap blur */
 .clock-section,
 .notif-header,
 .notif-item,
@@ -224,7 +225,6 @@ body {
   gap: 12px;
 }
 
-/* ===== KARTU NOTIFIKASI (glass) ===== */
 .notif-item {
   display: flex;
   align-items: flex-start;
@@ -257,7 +257,6 @@ body {
 .notif-body { font-size: 14px; line-height: 20px; color: #2a2a2c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .notif-item.group .notif-body { white-space: normal; line-height: 21px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* ===== TOMBOL BAWAH ===== */
 .bottom-actions {
   position: absolute;
   top: 830px; left: 0; right: 0;
@@ -286,7 +285,7 @@ body {
 }
 @keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 
-/* ===== ANIMASI (aktif hanya saat tap / lepas jari, bukan saat drag) ===== */
+/* ===== ANIMASI ===== */
 .animating .lock-content { transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
 .animating .clock-section,
 .animating .notif-header,
@@ -306,19 +305,30 @@ body {
   inset: 0;
   z-index: 10;
   will-change: transform;
+  pointer-events: auto;
 }
 
 .passcode-container {
   position: relative; height: 100%;
   display: flex; flex-direction: column; align-items: center;
   padding-top: 204px;
+  pointer-events: auto;
 }
 
-.passcode-container h2,
-.passcode-dots,
-.passcode-footer,
-.key {
+/* PERBAIKAN UTAMA: Jika passcode screen aktif, paksa opacity jadi 1 */
+#screen-passcode .passcode-container h2,
+#screen-passcode .passcode-dots,
+#screen-passcode .passcode-footer,
+#screen-passcode .key {
   opacity: var(--pfade, 0);
+}
+
+/* Kalau animasi sudah beres (class .animating hilang), pastikan opacity 1 */
+.screen-passcode-active .passcode-container h2,
+.screen-passcode-active .passcode-dots,
+.screen-passcode-active .passcode-footer,
+.screen-passcode-active .key {
+  opacity: 1 !important;
 }
 
 .passcode-container h2 { font-size: 21px; font-weight: 500; line-height: 27px; color: #3a3a3c; margin-bottom: 36px; letter-spacing: -0.2px; }
@@ -334,7 +344,13 @@ body {
 .dot { width: 17px; height: 17px; border-radius: 50%; border: 1.8px solid #2c2c2e; background: transparent; transition: background 0.15s ease; }
 .dot.filled { background: #2c2c2e; }
 
-.keypad { display: grid; grid-template-columns: repeat(3, 86px); gap: 18px 25px; }
+/* KEYPAD */
+.keypad { 
+  display: grid; 
+  grid-template-columns: repeat(3, 86px); 
+  gap: 18px 25px; 
+  pointer-events: auto;
+}
 .key {
   width: 86px; height: 86px; border-radius: 50%; border: none;
   padding-bottom: 6px;
@@ -345,11 +361,13 @@ body {
   color: #2a2a2c;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: pointer; font-family: inherit;
-  transition: background 0.1s ease, transform 0.1s ease;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition: background 0.1s ease;
 }
-.key:active { background: rgba(205, 205, 205, 0.85); transform: scale(0.95); }
-.key span { font-size: 44px; font-weight: 300; line-height: 44px; }
-.key small { font-size: 11px; font-weight: 500; line-height: 12px; letter-spacing: 2px; color: #3a3a3c; margin-top: 0; }
+.key:active { background: rgba(205, 205, 205, 0.85); }
+.key span { font-size: 44px; font-weight: 300; line-height: 44px; pointer-events: none; }
+.key small { font-size: 11px; font-weight: 500; line-height: 12px; letter-spacing: 2px; color: #3a3a3c; margin-top: 0; pointer-events: none; }
 .key-empty { background: transparent; box-shadow: none; pointer-events: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
 .key-del { background: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding-bottom: 0; }
 .key-del:active { background: rgba(0, 0, 0, 0.08); }
@@ -361,12 +379,12 @@ body {
   display: flex; justify-content: space-between;
   padding: 0 52px;
   font-size: 19px; line-height: 24px; color: #3a3a3c; font-weight: 400;
+  pointer-events: auto;
 }
 
 .home-placeholder { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; color: #000; gap: 10px; }
 
-
-/* ===== CLEAR ALL: kartu geser keluar satu-satu, lalu header memudar ===== */
+/* ===== CLEAR ALL ===== */
 .notif-item.clearing {
   opacity: 0;
   transform: translateX(-70px) scale(0.96);
@@ -377,4 +395,47 @@ body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
+}
+
+/* =====================================================
+   MEDIA QUERY UNTUK HP
+   ===================================================== */
+@media (max-width: 500px) {
+  html, body {
+    background-color: #000;
+    background-image: url('assets/1.png');
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    height: 100vh;
+    height: 100dvh; 
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    display: block;
+  }
+
+  .viewport-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 430px;
+    height: 932px;
+  }
+
+  .iphone-frame {
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent; 
+  }
+
+  .lock-bg {
+    background: transparent;
+  }
+
+  .hw-btn {
+    display: none;
+  }
 }
