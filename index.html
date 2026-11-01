@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
 
@@ -182,21 +182,96 @@
 
       <!-- ================= HOME SCREEN ================= -->
       <div class="screen" id="screen-home">
-        <div class="home-placeholder">
-          <h2>Unlocked!</h2>
-          <p>Lanjut ke Phase 2 (Chat Room)</p>
+        <div class="home-content">
+
+          <!-- Widget Cuaca & Kalender -->
+          <div class="widgets-row">
+            <!-- Cuaca -->
+            <div class="widget widget-weather">
+              <div class="w-header">
+                <span class="w-city">Jakarta</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M3 11.2L21.5 2.5 12.8 21l-2.4-7.6z"/></svg>
+              </div>
+              <div class="w-temp">23°</div>
+              <svg class="w-sun" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="4.6" fill="#FFD60A"/>
+                <g stroke="#FFD60A" stroke-width="2" stroke-linecap="round">
+                  <path d="M12 1.6v2.4M12 20v2.4M1.6 12H4M20 12h2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/>
+                </g>
+              </svg>
+              <div class="w-desc">Cerah</div>
+            </div>
+
+            <!-- Kalender: hari ini = Sabtu, 24 Oktober -->
+            <div class="widget widget-calendar">
+              <div class="cal-header">Oktober</div>
+              <div class="cal-grid">
+                <span>M</span><span>S</span><span>S</span><span>R</span><span>K</span><span>J</span><span>S</span>
+                <span></span><span></span><span></span><span></span><span>1</span><span>2</span><span>3</span>
+                <span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                <span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span>
+                <span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span class="today">24</span>
+                <span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grid Aplikasi -->
+          <div class="app-grid">
+            <!-- Row 1 -->
+            <div class="app-item">
+              <img src="icon-app/notes.png" alt="Notes" class="app-icon-img">
+              <span class="app-name">Notes</span>
+            </div>
+            <div class="app-item">
+              <img src="icon-app/photos.png" alt="Photos" class="app-icon-img">
+              <span class="app-name">Photos</span>
+            </div>
+            <div class="app-item">
+              <!-- Ikon Calendar digambar pakai CSS biar tanggalnya ikut hari ini (Sab 24) -->
+              <div class="app-icon-img cal-icon"><span class="cal-dow">Sat</span><span class="cal-day">24</span></div>
+              <span class="app-name">Calendar</span>
+            </div>
+            <div class="app-item">
+              <img src="icon-app/instagram.png" alt="Instagram" class="app-icon-img">
+              <span class="app-name">Instagram</span>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="app-item">
+              <img src="icon-app/maps.png" alt="Maps" class="app-icon-img">
+              <span class="app-name">Maps</span>
+            </div>
+            <div class="app-item">
+              <img src="icon-app/gmail.png" alt="Gmail" class="app-icon-img">
+              <span class="app-name">Gmail</span>
+            </div>
+            <div class="app-item">
+              <img src="icon-app/files.png" alt="Files" class="app-icon-img">
+              <span class="app-name">Files</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Dock -->
+        <div class="dock">
+          <img src="icon-app/phone.png" alt="Phone" class="app-icon-img" data-app="phone">
+          <img src="icon-app/messages.png" alt="Messages" class="app-icon-img" data-app="messages">
+          <img src="icon-app/camera.png" alt="Camera" class="app-icon-img">
+          <img src="icon-app/clock.png" alt="Clock" class="app-icon-img">
         </div>
       </div>
 
-    </div>
+    </div><!-- /iphone-frame -->
 
-    <!-- Tombol fisik iPhone (Sembunyi di HP) -->
+    <!-- Tombol fisik iPhone (disembunyikan di HP) -->
     <div class="hw-btn hw-action"></div>
     <div class="hw-btn hw-vol-up"></div>
     <div class="hw-btn hw-vol-down"></div>
     <div class="hw-btn hw-power"></div>
-  </div>
+  </div><!-- /viewport-wrapper -->
 
-  <script src="script.js?v=4"></script>
+  <script src="script.js?v=6"></script>
 </body>
 </html>

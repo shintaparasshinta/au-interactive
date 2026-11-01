@@ -25,15 +25,19 @@ document.addEventListener('DOMContentLoaded', () => {
       root.style.setProperty('--vshift', String(clamp(designHeight - H, 0, 41)));
 
       wrapper.style.zoom = '1';
+      // Lebar desain ikut melebar kalau layar lebih "pendek" dari rasio desain,
+      // jadi frame selalu menutupi seluruh lebar layar (tanpa pinggiran kosong)
+      wrapper.style.width = (window.innerWidth / scale) + 'px';
       wrapper.style.height = H + 'px';
       wrapper.style.position = 'absolute';
       wrapper.style.transformOrigin = 'top left';
       wrapper.style.transform = `scale(${scale})`;
-      wrapper.style.left = ((window.innerWidth - designWidth * scale) / 2) + 'px';
+      wrapper.style.left = '0px';
       wrapper.style.top = '0px';
     } else {
       root.style.setProperty('--vshift', '0');
       wrapper.style.zoom = '1';
+      wrapper.style.width = '';
       wrapper.style.height = '';
       wrapper.style.position = 'relative';
       wrapper.style.left = '0';
@@ -205,29 +209,42 @@ document.addEventListener('DOMContentLoaded', () => {
     if (input.length >= 4) return;
     input += key;
     updateDots();
-    if (input.length === 4) setTimeout(checkPasscode, 200);
+    
+    // LANGSUNG CEK TANPA JEDA
+    if (input.length === 4) {
+      checkPasscode();
+    }
   }
 
   function checkPasscode() {
     if (input === PASSWORD) {
       state = 'home';
+      
+      // Ubah titik jadi hijau SEKETIKA
       dots.forEach(d => d.style.background = '#34C759');
+      
+      // Transisi ke Home Screen tanpa jeda lama
+      homeScreen.classList.add('active');
+      root.classList.add('home-mode');
+      
+      // Kasih waktu super singkat (150ms) cuma buat animasi titik hijau
       setTimeout(() => {
-        homeScreen.classList.add('active'); // home fade in di atas passcode
-        setTimeout(() => {
-          passcodeScreen.classList.remove('active');
-          passcodeScreen.style.setProperty('--pfade', 0);
-          frame.classList.remove('passcode-mode');
-          resetPasscode();
-        }, 450);
-      }, 300);
+        passcodeScreen.classList.remove('active');
+        passcodeScreen.style.setProperty('--pfade', 0);
+        frame.classList.remove('passcode-mode');
+        resetPasscode();
+      }, 150); 
+      
     } else {
+      // Shake instan
       passcodeDots.classList.add('shake');
       if (navigator.vibrate) navigator.vibrate(100);
-      setTimeout(resetPasscode, 500);
+      
+      // Reset cepat (300ms)
+      setTimeout(resetPasscode, 300);
     }
   }
-
+    
   if (keypad) {
     keypad.addEventListener('click', (e) => {
       const btn = e.target.closest('.key');
@@ -278,6 +295,18 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => notifHeader.classList.add('hidden'), notifItems.length * 40 + 200);
     });
   }
+
+    /* ===== HOME SCREEN INTERACTION ===== */
+  document.querySelectorAll('#screen-home .app-icon').forEach(icon => {
+    icon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Nanti kita arahkan ke App Overlay yang sesuai
+      // Contoh: kalau yang diklik ikon iMessage (warna hijau dock)
+      if (icon.querySelector('path[d*="M20 2H4"]')) {
+        alert("Membuka iMessage...");
+      }
+    });
+  });
 
   render(0);
 });

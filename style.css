@@ -349,4 +349,199 @@ body {
   .hw-btn {
     display: none;
   }
+
+  /* Setelah unlock: wallpaper lock nggak boleh kelihatan lagi di balik home */
+  .home-mode,
+  .home-mode body { background-color: #fff; }
+  .home-mode body::before { display: none; }
+}
+
+/* =====================================================
+   HOME SCREEN & APP OVERLAY
+   ===================================================== */
+
+/* ===== HOME SCREEN ===== */
+/* Wallpaper: proporsi dijaga (cover), nggak di-stretch lagi */
+#screen-home {
+  z-index: 2000;
+  background: #fff url('assets/2.png') center / cover no-repeat;
+}
+
+.home-content {
+  position: absolute;
+  inset: 0;
+  padding: 70px 28px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* ---- Widgets (2 x 180px) ---- */
+.widgets-row { display: flex; gap: 14px; }
+
+.widget {
+  position: relative;
+  flex: 1;
+  height: 180px;
+  border-radius: 25px;
+}
+
+.widget-weather {
+  color: #fff;
+  background: linear-gradient(180deg, #4a8de0 0%, #6eaaeb 100%);
+}
+.w-header {
+  position: absolute; top: 12px; left: 14px; right: 14px;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 15px; line-height: 20px; font-weight: 600; letter-spacing: -0.2px;
+}
+.w-temp {
+  position: absolute; top: 34px; left: 13px;
+  font-size: 54px; line-height: 54px; font-weight: 300; letter-spacing: -1px;
+}
+.w-sun { position: absolute; top: 109px; left: 14px; width: 22px; height: 22px; }
+.w-desc {
+  position: absolute; top: 145px; left: 14px;
+  font-size: 16px; line-height: 20px; font-weight: 600; letter-spacing: -0.2px;
+}
+
+.widget-calendar {
+  color: #111;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+.cal-header {
+  position: absolute; top: 12px; left: 13px;
+  font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: -0.1px;
+  color: #ff3b30;
+}
+.cal-grid {
+  position: absolute; top: 35px; left: 10px; right: 10px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: 20px;
+  grid-auto-rows: 18.5px;
+  row-gap: 2px;
+}
+.cal-grid span {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 500; color: #1c1c1e;
+}
+.cal-grid span:nth-child(-n+7) { font-size: 11px; font-weight: 600; color: #8a8a8e; }
+.cal-grid span:nth-child(7n+1) { color: #e5473d; }          /* kolom Minggu */
+.cal-grid .today {
+  width: 20px; height: 20px; margin: 0 auto;
+  border-radius: 50%;
+  background: #ff3b30; color: #fff; font-weight: 600;
+}
+
+/* ---- Grid aplikasi (4 kolom, ikon 66px) ---- */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: 23px;
+}
+
+.app-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.app-icon-img {
+  width: 66px;
+  height: 66px;
+  border-radius: 15px;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.app-name {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  letter-spacing: -0.1px;
+  color: #111;
+}
+
+/* Ikon Calendar (digambar CSS, tanggal = hari ini) */
+.cal-icon {
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.cal-dow { margin-top: 8px; font-size: 12px; line-height: 14px; font-weight: 600; color: #ff3b30; }
+.cal-day { margin-top: 1px; font-size: 40px; line-height: 40px; font-weight: 300; color: #111; }
+
+/* ---- Dock ---- */
+.dock {
+  position: absolute;
+  bottom: 32px;
+  left: 33px;
+  right: 33px;
+  height: 84px;
+  padding: 0 7px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(247, 247, 247, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 32px;
+}
+.dock .app-icon-img { cursor: pointer; }
+
+/* ===== APP OVERLAY ===== */
+.app-overlay {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  z-index: 2500;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.app-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.app-overlay-header {
+  padding: 60px 20px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e5e5;
+  background: #f9f9f9;
+}
+
+.app-overlay-header button {
+  background: none;
+  border: none;
+  color: #007AFF;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.app-overlay-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
 }
