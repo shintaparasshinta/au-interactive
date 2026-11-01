@@ -13,15 +13,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ===== UKURAN YANG GAMPANG DI-TWEAK ===== */
 :root {
-  --status-side: 32px;  /* jarak jam & ikon status bar ke tepi layar */
-  --notif-side: 12px;   /* jarak kartu notifikasi ke tepi layar (makin kecil = makin lebar) */
-  --notif-gap: 8px;     /* jarak antar kartu */
-  --header-side: 20px;  /* jarak "Notification Center" & tombol X ke tepi */
+  --status-side: 32px;
+  --notif-side: 12px;
+  --notif-gap: 8px;
+  --header-side: 20px;
 }
 
-/* ===== BASE DESKTOP ===== */
 body {
   background-color: #000;
   height: 100vh;
@@ -81,15 +79,12 @@ body {
   pointer-events: none;
   overflow: hidden;
   z-index: 10;
-  transition: opacity 0.4s ease; /* Animasi pudar yang mulus */
+  transition: opacity 0.4s ease;
 }
 .screen.active {
   opacity: 1;
   pointer-events: auto;
 }
-
-/* LAYAR PASSCODE */
-/* Layar yang tidak aktif TIDAK BOLEH nangkep klik/sentuhan sama sekali */
 .screen:not(.active),
 .screen:not(.active) * {
   pointer-events: none !important;
@@ -98,10 +93,9 @@ body {
 #screen-passcode {
   z-index: 1000;
   background: transparent;
-  opacity: 1;      /* fade dikerjakan per-elemen supaya efek glass tetap hidup */
+  opacity: 1;
   transition: none;
 }
-
 #screen-home {
   z-index: 2000;
 }
@@ -122,16 +116,23 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: #2a2a2a;
+  color: #2a2a2a; /* Default gelap buat layar putih */
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.2px;
+  transition: color 0.3s ease;
 }
+
+/* KALAU LAGI DI APP PHOTOS, STATUS BAR JADI PUTIH */
+.app-photos-mode .status-bar { color: #fff; }
+.app-photos-mode .battery { background: #555; }
+.app-photos-mode .battery-level { background: #fff; }
 
 .status-right { display: flex; align-items: center; }
 .ico-signal { margin-right: 10px; }
 .ico-wifi { margin-right: 7px; }
 
+/* Baterai Default (Mode Terang) */
 .battery {
   position: relative;
   width: 31px;
@@ -144,7 +145,19 @@ body {
   justify-content: center;
 }
 .battery-level { position: absolute; left: 0; top: 0; bottom: 0; width: 40%; background: #3a3a3c; }
-.battery-text { position: relative; font-size: 11px; font-weight: 700; color: #fff; letter-spacing: -0.2px; }
+.battery-text { 
+  position: relative; 
+  font-size: 11px; 
+  font-weight: 700; 
+  color: #fff; /* Default putih, biar aman di atas background abu-abu */
+  letter-spacing: -0.2px; 
+}
+
+/* === MODE GELAP (Aplikasi Photos) === */
+.app-photos-mode .status-bar { color: #fff; }
+.app-photos-mode .battery { background: #3a3a3c; } /* Baterai agak gelap */
+.app-photos-mode .battery-level { background: #fff; } /* Isi baterai putih */
+.app-photos-mode .battery-text { color: #000; } /* Teks jadi hitam */
 
 .dynamic-island {
   position: absolute;
@@ -238,7 +251,7 @@ body {
 @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
 
 .dot { width: 17px; height: 17px; border-radius: 50%; border: 1.8px solid #2c2c2e; background: transparent; transition: background 0.15s ease; }
-.dot.filled { background: #2c2c2e; }
+.dot.filled { background: #2c2c2e; transition: none; }
 
 /* KEYPAD */
 .keypad { display: grid; grid-template-columns: repeat(3, 86px); gap: 18px 25px; position: relative; z-index: 100; }
@@ -246,16 +259,16 @@ body {
   width: 86px; height: 86px; border-radius: 50%; border: none;
   padding-bottom: 6px;
   background: rgba(236, 236, 236, 0.62);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
   color: #2a2a2c;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: pointer; font-family: inherit;
   touch-action: manipulation;
-  transition: background 0.1s ease;
+  transition: background 0.35s ease;
 }
-.key:active { background: rgba(205, 205, 205, 0.85); }
+.key:active { background: rgba(205, 205, 205, 0.85); transition: none; }
 .key span { font-size: 44px; font-weight: 300; line-height: 44px; pointer-events: none; }
 .key small { font-size: 11px; font-weight: 500; line-height: 12px; letter-spacing: 2px; color: #3a3a3c; margin-top: 0; pointer-events: none; }
 .key-empty { background: transparent; box-shadow: none; pointer-events: none !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
@@ -271,9 +284,7 @@ body {
   font-size: 19px; line-height: 24px; color: #3a3a3c; font-weight: 400;
 }
 
-.home-placeholder { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; color: #000; gap: 10px; }
-
-/* ===== FADE PER-ELEMEN (bukan di container, biar blur glass kartu tetap hidup) ===== */
+/* ===== FADE PER-ELEMEN ===== */
 .clock-section,
 .notif-header,
 .notif-item,
@@ -282,7 +293,7 @@ body {
   opacity: var(--fade, 1);
 }
 
-/* ===== ANIMASI (aktif hanya saat tap / lepas jari, bukan saat drag) ===== */
+/* ===== ANIMASI ===== */
 .animating .lock-content { transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
 .animating .clock-section,
 .animating .notif-header,
@@ -295,7 +306,7 @@ body {
 .animating .passcode-container h2,
 .animating .passcode-dots,
 .animating .passcode-footer { transition: opacity 0.4s ease; }
-.animating .key { transition: opacity 0.4s ease, background 0.1s ease; }
+.animating .key { transition: opacity 0.4s ease, background 0.35s ease; }
 
 /* ===== CLEAR ALL ===== */
 .notif-item.clearing { opacity: 0; transform: translateX(-70px) scale(0.96); pointer-events: none; transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease; }
@@ -316,7 +327,6 @@ body {
     display: block;
   }
 
-  /* Wallpaper full-layar di HP; blur-nya dikendalikan JS lewat --bg-blur */
   body::before {
     content: '';
     position: fixed;
@@ -350,18 +360,14 @@ body {
     display: none;
   }
 
-  /* Setelah unlock: wallpaper lock nggak boleh kelihatan lagi di balik home */
   .home-mode,
   .home-mode body { background-color: #fff; }
   .home-mode body::before { display: none; }
 }
 
 /* =====================================================
-   HOME SCREEN & APP OVERLAY
+   HOME SCREEN
    ===================================================== */
-
-/* ===== HOME SCREEN ===== */
-/* Wallpaper: proporsi dijaga (cover), nggak di-stretch lagi */
 #screen-home {
   z-index: 2000;
   background: #fff url('assets/2.png') center / cover no-repeat;
@@ -376,7 +382,6 @@ body {
   gap: 26px;
 }
 
-/* ---- Widgets (2 x 180px) ---- */
 .widgets-row { display: flex; gap: 14px; }
 
 .widget {
@@ -429,14 +434,13 @@ body {
   font-size: 14px; font-weight: 500; color: #1c1c1e;
 }
 .cal-grid span:nth-child(-n+7) { font-size: 11px; font-weight: 600; color: #8a8a8e; }
-.cal-grid span:nth-child(7n+1) { color: #e5473d; }          /* kolom Minggu */
+.cal-grid span:nth-child(7n+1) { color: #e5473d; }
 .cal-grid .today {
   width: 20px; height: 20px; margin: 0 auto;
   border-radius: 50%;
   background: #ff3b30; color: #fff; font-weight: 600;
 }
 
-/* ---- Grid aplikasi (4 kolom, ikon 66px) ---- */
 .app-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -468,7 +472,6 @@ body {
   color: #111;
 }
 
-/* Ikon Calendar (digambar CSS, tanggal = hari ini) */
 .cal-icon {
   background: #fff;
   display: flex;
@@ -476,9 +479,8 @@ body {
   align-items: center;
 }
 .cal-dow { margin-top: 8px; font-size: 12px; line-height: 14px; font-weight: 600; color: #ff3b30; }
-.cal-day { margin-top: 1px; font-size: 40px; line-height: 40px; font-weight: 300; color: #111; }
+.cal-day { margin-top: 2px; font-size: 40px; line-height: 40px; font-weight: 300; color: #111; }
 
-/* ---- Dock ---- */
 .dock {
   position: absolute;
   bottom: 32px;
@@ -498,7 +500,9 @@ body {
 }
 .dock .app-icon-img { cursor: pointer; }
 
-/* ===== APP OVERLAY ===== */
+/* =====================================================
+   APP OVERLAY & PHOTOS
+   ===================================================== */
 .app-overlay {
   position: absolute;
   inset: 0;
@@ -511,37 +515,204 @@ body {
   display: flex;
   flex-direction: column;
 }
-
 .app-overlay.open {
   opacity: 1;
   pointer-events: auto;
   transform: scale(1);
 }
 
-.app-overlay-header {
-  padding: 60px 20px 10px;
+/* =====================================================
+   APP: PHOTOS
+   ===================================================== */
+#app-photos {
+  background: #000;
+  z-index: 2500;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Ini penting biar header nggak ikut geser */
+  position: absolute;
+  inset: 0;
+}
+
+.photos-header {
+  position: relative; /* BUKAN absolute, biar dia diem di atas */
+  flex-shrink: 0;
+  height: 105px;
+  padding: 100px 20px 25px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-weight: 600;
-  border-bottom: 1px solid #e5e5e5;
-  background: #f9f9f9;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 100;
 }
-
-.app-overlay-header button {
-  background: none;
-  border: none;
-  color: #007AFF;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
+.ph-title {
+  color: #fff;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.ph-actions {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 15px;
+  margin-bottom: 5px;
+}
+.ph-select {
+  color: #007AFF;
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ph-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.ph-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* INI KUNCI BIAR BISA DI-SCROLL */
+.photos-scroll-area {
+  flex: 1; /* Ngisi sisa ruang di bawah header */
+  overflow-y: auto; /* Bikin bisa scroll ke bawah */
+  overflow-x: hidden; /* Nggak bisa geser ke samping */
+  -webkit-overflow-scrolling: touch; /* Biar scroll di iOS mulus */
+  padding-bottom: 90px;
+  scrollbar-width: none; /* Sembunyiin scrollbar di Firefox */
+}
+.photos-scroll-area::-webkit-scrollbar { display: none; } /* Sembunyiin scrollbar di Chrome/Safari */
+
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+.photo-item {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
 }
 
-.app-overlay-content {
-  flex: 1;
-  overflow-y: auto;
+.photos-bottom-sections {
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 35px;
 }
+.ph-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ph-sec-title {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.ph-sec-grid { display: grid; gap: 12px; }
+.ph-sec-grid.col-2 { grid-template-columns: 1fr 1fr; }
+.ph-sec-grid.col-3 { grid-template-columns: repeat(3, 1fr); }
+
+.ph-sec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+}
+.ph-sec-item img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+.ph-sec-label {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.ph-sec-label span {
+  color: #888;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.ph-list { display: flex; flex-direction: column; }
+.ph-list-item {
+  color: #fff;
+  font-size: 17px;
+  padding: 10px 0;
+  border-bottom: 1px solid #222;
+}
+
+.photos-tab-bar {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 28, 30, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 25px;
+  display: flex;
+  padding: 4px;
+  z-index: 100;
+}
+.ph-tab {
+  color: #fff;
+  padding: 8px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.ph-tab.active { background: #3a3a3c; }
+
+
+/* ===== FIX SCROLL PHOTOS =====
+   .photos-app dulu nggak punya CSS sama sekali, jadi bukan flex & tingginya ikut isi konten
+   -> .photos-scroll-area (flex:1) nggak pernah kebatas tinggi layar dan nggak bisa di-scroll. */
+.photos-app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-height: 0;   /* wajib biar anak flex boleh lebih kecil dari isinya */
+}
+.photos-scroll-area {
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+
+/* =====================================================
+   NAVIGASI APP: keluar dengan swipe up dari bawah
+   ===================================================== */
+.app-overlay {
+  overflow: hidden;            /* sudut membulat saat app mengecil */
+  will-change: transform, opacity;
+}
+
+/* Strip tipis di tepi bawah (area home indicator). Aktif hanya saat ada app terbuka. */
+.home-gesture-zone {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 30px;
+  z-index: 2600;               /* di atas app (2500), di bawah system UI (3000) */
+  pointer-events: none;
+  touch-action: none;
+}
+.app-open .home-gesture-zone { pointer-events: auto; }
+
+/* Home indicator jadi putih di atas app gelap */
+.app-photos-mode .home-indicator { background: #fff; }

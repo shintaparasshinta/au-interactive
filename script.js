@@ -209,46 +209,36 @@ document.addEventListener('DOMContentLoaded', () => {
     if (input.length >= 4) return;
     input += key;
     updateDots();
-    
-    // LANGSUNG CEK TANPA JEDA
-    if (input.length === 4) {
-      checkPasscode();
-    }
+    if (input.length === 4) setTimeout(checkPasscode, 120);
   }
 
   function checkPasscode() {
     if (input === PASSWORD) {
       state = 'home';
-      
-      // Ubah titik jadi hijau SEKETIKA
       dots.forEach(d => d.style.background = '#34C759');
-      
-      // Transisi ke Home Screen tanpa jeda lama
-      homeScreen.classList.add('active');
-      root.classList.add('home-mode');
-      
-      // Kasih waktu super singkat (150ms) cuma buat animasi titik hijau
       setTimeout(() => {
-        passcodeScreen.classList.remove('active');
-        passcodeScreen.style.setProperty('--pfade', 0);
-        frame.classList.remove('passcode-mode');
-        resetPasscode();
-      }, 150); 
-      
+        homeScreen.classList.add('active'); // home fade in di atas passcode
+        root.classList.add('home-mode');
+        setTimeout(() => {
+          passcodeScreen.classList.remove('active');
+          passcodeScreen.style.setProperty('--pfade', 0);
+          frame.classList.remove('passcode-mode');
+          resetPasscode();
+        }, 450);
+      }, 300);
     } else {
-      // Shake instan
       passcodeDots.classList.add('shake');
       if (navigator.vibrate) navigator.vibrate(100);
-      
-      // Reset cepat (300ms)
-      setTimeout(resetPasscode, 300);
+      setTimeout(resetPasscode, 500);
     }
   }
-    
+
   if (keypad) {
-    keypad.addEventListener('click', (e) => {
+    // pointerdown = langsung kebaca pas jari nempel (click baru nyala setelah jari diangkat)
+    keypad.addEventListener('pointerdown', (e) => {
       const btn = e.target.closest('.key');
       if (!btn || btn.disabled || btn.classList.contains('key-empty')) return;
+      e.preventDefault(); // cegah click susulan biar nggak kehitung dua kali
       const key = btn.dataset.key;
       if (key) handleKey(key);
     });
@@ -306,6 +296,136 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("Membuka iMessage...");
       }
     });
+  });
+
+  /* ===== APP OVERLAY: buka dari ikon, keluar dengan swipe up dari bawah ===== */
+  const homeGesture = document.getElementById('homeGesture');
+
+  // Daftar app: ikon di home -> overlay-nya. Tambah app baru tinggal nambah baris di sini.
+  const APPS = [
+    { icon: 'img[alt="Photos"]', overlay: 'app-photos' },
+  ];
+
+  let activeApp = null;   // { ov, iconEl, mode }
+
+  // Posisi & ukuran ikon relatif ke pusat frame (px desain) = titik asal/tujuan animasi zoom
+  function iconOrigin(iconEl) {
+    const fr = frame.getBoundingClientRect();
+    const ir = iconEl.getBoundingClientRect();
+    return {
+      dx: ((ir.left + ir.width / 2) - (fr.left + fr.width / 2)) / frameScale,
+      dy: ((ir.top + ir.height / 2) - (fr.top + fr.height / 2)) / frameScale,
+      s: ir.width / fr.width
+    };
+  }
+  const iconTransform = (o) => `translate3d(${o.dx}px, ${o.dy}px, 0) scale(${o.s})`;
+  const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+  function openApp(app, iconEl) {
+    if (activeApp) return;
+    const ov = document.getElementById(app.overlay);
+    if (!ov) return;
+
+    const o = iconOrigin(iconEl);
+    activeApp = { ov, iconEl, mode: app.overlay + '-mode' };
+
+    // Start: kecil di posisi ikon
+    ov.style.transition = 'none';
+    ov.style.transform = iconTransform(o);
+    ov.style.opacity = '0';
+    ov.style.borderRadius = (15 / o.s) + 'px';
+    ov.classList.add('open');
+    void ov.offsetWidth; // paksa browser "mencatat" posisi awal
+
+    // Zoom ke layar penuh
+    ov.style.transition = `transform 0.5s ${EASE}, opacity 0.25s ease, border-radius 0.5s ${EASE}`;
+    ov.style.transform = 'translate3d(0, 0, 0) scale(1)';
+    ov.style.opacity = '1';
+    ov.style.borderRadius = '0px';
+
+    root.classList.add(activeApp.mode);   // status bar mode gelap
+    frame.classList.add('app-open');      // aktifin zona gesture bawah
+  }
+
+  function closeApp() {
+    if (!activeApp) return;
+    const { ov, iconEl, mode } = activeApp;
+    activeApp = null;
+
+    // Mengecil balik ke ikonnya
+    const o = iconOrigin(iconEl);
+    ov.style.transition = `transform 0.45s ${EASE}, opacity 0.3s ease 0.1s, border-radius 0.45s ease, box-shadow 0.3s ease`;
+    ov.style.transform = iconTransform(o);
+    ov.style.opacity = '0';
+    ov.style.borderRadius = (15 / o.s) + 'px';
+    ov.style.boxShadow = 'none';
+
+    root.classList.remove(mode);
+    frame.classList.remove('app-open');
+
+    setTimeout(() => {
+      ov.classList.remove('open');
+      ov.style.cssText = ''; // balik ke gaya awal dari CSS
+    }, 480);
+  }
+
+  APPS.forEach(app => {
+    const icon = document.querySelector(app.icon);
+    if (icon) icon.addEventListener('click', () => openApp(app, icon));
+  });
+
+  // --- Gesture keluar: tarik ke atas dari tepi bawah ---
+  let appDrag = null;
+
+  homeGesture.addEventListener('pointerdown', (e) => {
+    if (!activeApp) return;
+    homeGesture.setPointerCapture(e.pointerId);
+    appDrag = { startY: e.clientY, lastY: e.clientY, lastT: performance.now(), v: 0, d: 0 };
+    activeApp.ov.style.transition = 'none'; // ikut jari 1:1
+  });
+
+  homeGesture.addEventListener('pointermove', (e) => {
+    if (!appDrag || !activeApp) return;
+    const now = performance.now();
+    const dt = now - appDrag.lastT;
+    if (dt > 0) appDrag.v = (appDrag.lastY - e.clientY) / dt;
+    appDrag.lastY = e.clientY;
+    appDrag.lastT = now;
+
+    const d = Math.max(0, (appDrag.startY - e.clientY) / frameScale);
+    appDrag.d = d;
+    const p = clamp(d / 320, 0, 1);
+
+    // App mengecil jadi "kartu" sambil naik pelan
+    const ov = activeApp.ov;
+    ov.style.transform = `translate3d(0, ${-d * 0.35}px, 0) scale(${1 - p * 0.5})`;
+    ov.style.borderRadius = (54 + p * 50) + 'px';
+    ov.style.boxShadow = `0 12px 40px rgba(0, 0, 0, ${0.35 * p})`;
+  });
+
+  function endAppDrag() {
+    if (!appDrag) return;
+    const ad = appDrag;
+    appDrag = null;
+    if (!activeApp) return;
+
+    if (ad.d > 110 || ad.v > 0.5) {
+      closeApp(); // cukup jauh atau flick cepat -> keluar
+    } else {
+      // Belum cukup: balik lagi ke layar penuh
+      const ov = activeApp.ov;
+      ov.style.transition = `transform 0.4s ${EASE}, border-radius 0.4s ease, box-shadow 0.4s ease`;
+      ov.style.transform = 'translate3d(0, 0, 0) scale(1)';
+      ov.style.borderRadius = '0px';
+      ov.style.boxShadow = 'none';
+    }
+  }
+  homeGesture.addEventListener('pointerup', endAppDrag);
+  homeGesture.addEventListener('pointercancel', endAppDrag);
+
+  // Cadangan buat desktop: tombol Esc juga keluar dari app
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && activeApp) closeApp();
   });
 
   render(0);

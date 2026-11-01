@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=10" />
 </head>
 <body>
 
@@ -17,10 +17,9 @@
       <!-- BACKGROUND -->
       <div class="lock-bg" id="lockBg"></div>
 
-      <!-- ================= SYSTEM UI (tetap, tidak ikut animasi) ================= -->
+      <!-- ================= SYSTEM UI ================= -->
       <div class="system-ui">
         <div class="dynamic-island"></div>
-
         <div class="status-bar">
           <div class="status-left">21:45</div>
           <div class="status-right">
@@ -38,16 +37,14 @@
             <div class="battery"><div class="battery-level"></div><span class="battery-text">40</span></div>
           </div>
         </div>
-
         <div class="home-indicator"></div>
       </div>
 
       <!-- ================= LOCK SCREEN ================= -->
       <div class="screen active" id="screen-lock">
-
         <div class="lock-content" id="lockContent">
           <div class="clock-section">
-            <div class="date">Senin, 26 Oktober</div>
+            <div class="date">Saturday, 24 October</div>
             <div class="time">21:45</div>
           </div>
 
@@ -183,10 +180,7 @@
       <!-- ================= HOME SCREEN ================= -->
       <div class="screen" id="screen-home">
         <div class="home-content">
-
-          <!-- Widget Cuaca & Kalender -->
           <div class="widgets-row">
-            <!-- Cuaca -->
             <div class="widget widget-weather">
               <div class="w-header">
                 <span class="w-city">Jakarta</span>
@@ -202,7 +196,6 @@
               <div class="w-desc">Cerah</div>
             </div>
 
-            <!-- Kalender: hari ini = Sabtu, 24 Oktober -->
             <div class="widget widget-calendar">
               <div class="cal-header">Oktober</div>
               <div class="cal-grid">
@@ -216,9 +209,7 @@
             </div>
           </div>
 
-          <!-- Grid Aplikasi -->
           <div class="app-grid">
-            <!-- Row 1 -->
             <div class="app-item">
               <img src="icon-app/notes.png" alt="Notes" class="app-icon-img">
               <span class="app-name">Notes</span>
@@ -228,16 +219,13 @@
               <span class="app-name">Photos</span>
             </div>
             <div class="app-item">
-              <!-- Ikon Calendar digambar pakai CSS biar tanggalnya ikut hari ini (Sab 24) -->
-              <div class="app-icon-img cal-icon"><span class="cal-dow">Sat</span><span class="cal-day">24</span></div>
+              <div class="app-icon-img cal-icon"><span class="cal-dow">Sab</span><span class="cal-day">24</span></div>
               <span class="app-name">Calendar</span>
             </div>
             <div class="app-item">
               <img src="icon-app/instagram.png" alt="Instagram" class="app-icon-img">
               <span class="app-name">Instagram</span>
             </div>
-
-            <!-- Row 2 -->
             <div class="app-item">
               <img src="icon-app/maps.png" alt="Maps" class="app-icon-img">
               <span class="app-name">Maps</span>
@@ -251,10 +239,8 @@
               <span class="app-name">Files</span>
             </div>
           </div>
-
         </div>
 
-        <!-- Dock -->
         <div class="dock">
           <img src="icon-app/phone.png" alt="Phone" class="app-icon-img" data-app="phone">
           <img src="icon-app/messages.png" alt="Messages" class="app-icon-img" data-app="messages">
@@ -263,15 +249,117 @@
         </div>
       </div>
 
+      <!-- ================= APP: PHOTOS ================= -->
+      <!-- DIPINDAH KE SINI, DI LUAR SCREEN HOME BIAR BISA DI-SCROLL -->
+      <div class="app-overlay" id="app-photos">
+        <div class="photos-app">
+          
+          <div class="photos-header">
+            <div class="ph-title">Library</div>
+            <div class="ph-actions">
+              <span class="ph-select">Select</span>
+              <div class="ph-avatar">
+                <img src="assets/rayn.png" alt="Profile">
+              </div>
+            </div>
+          </div>
+
+          <div class="photos-scroll-area">
+            <div class="photos-grid">
+              <img src="photos/1.png" alt="1" class="photo-item">
+              <img src="photos/2.png" alt="2" class="photo-item">
+              <img src="photos/3.png" alt="3" class="photo-item">
+              <img src="photos/4.png" alt="4" class="photo-item">
+              <img src="photos/5.png" alt="5" class="photo-item">
+              <img src="photos/6.png" alt="6" class="photo-item">
+              <img src="photos/7.png" alt="7" class="photo-item">
+              <img src="photos/8.png" alt="8" class="photo-item">
+              <img src="photos/9.png" alt="9" class="photo-item">
+              <img src="photos/10.png" alt="10" class="photo-item">
+              <img src="photos/11.png" alt="11" class="photo-item">
+              <img src="photos/12.png" alt="12" class="photo-item">
+              <img src="photos/13.png" alt="13" class="photo-item">
+              <img src="photos/14.png" alt="14" class="photo-item">
+              <img src="photos/15.png" alt="15" class="photo-item">
+              <img src="photos/16.png" alt="16" class="photo-item">
+              <img src="photos/17.png" alt="17" class="photo-item">
+              <img src="photos/18.png" alt="18" class="photo-item">
+            </div>
+
+            <div class="photos-bottom-sections">
+              <div class="ph-section">
+                <div class="ph-sec-title">Recent Days</div>
+                <div class="ph-sec-grid col-2">
+                  <div class="ph-sec-item">
+                    <img src="photos/1.png" alt="Today">
+                    <div class="ph-sec-label">Today</div>
+                  </div>
+                  <div class="ph-sec-item">
+                    <img src="photos/2.png" alt="Yesterday">
+                    <div class="ph-sec-label">Yesterday</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ph-section">
+                <div class="ph-sec-title">Recent Days</div>
+                <div class="ph-sec-grid col-3">
+                  <div class="ph-sec-item">
+                    <img src="photos/3.png" alt="Recents">
+                    <div class="ph-sec-label">Recents<br><span>18</span></div>
+                  </div>
+                  <div class="ph-sec-item">
+                    <img src="photos/4.png" alt="Favorites">
+                    <div class="ph-sec-label">Favorites<br><span>7</span></div>
+                  </div>
+                  <div class="ph-sec-item">
+                    <img src="photos/5.png" alt="4boiz">
+                    <div class="ph-sec-label">4boiz<br><span>9</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ph-section">
+                <div class="ph-sec-title">Media Types</div>
+                <div class="ph-list">
+                  <div class="ph-list-item">Videos</div>
+                  <div class="ph-list-item">Selfies</div>
+                  <div class="ph-list-item">Screenshots</div>
+                </div>
+              </div>
+
+              <div class="ph-section">
+                <div class="ph-sec-title">Utilities</div>
+                <div class="ph-list">
+                  <div class="ph-list-item">Imports</div>
+                  <div class="ph-list-item">Duplicates</div>
+                  <div class="ph-list-item">Hidden</div>
+                  <div class="ph-list-item">Recently Deleted</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="photos-tab-bar">
+            <div class="ph-tab">Years</div>
+            <div class="ph-tab">Months</div>
+            <div class="ph-tab active">All</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Zona gesture "swipe up dari bawah" buat keluar dari app (aktif cuma pas app kebuka) -->
+      <div class="home-gesture-zone" id="homeGesture"></div>
+
     </div><!-- /iphone-frame -->
 
-    <!-- Tombol fisik iPhone (disembunyikan di HP) -->
     <div class="hw-btn hw-action"></div>
     <div class="hw-btn hw-vol-up"></div>
     <div class="hw-btn hw-vol-down"></div>
     <div class="hw-btn hw-power"></div>
   </div><!-- /viewport-wrapper -->
 
-  <script src="script.js?v=6"></script>
+  <script src="script.js?v=10"></script>
 </body>
 </html>
