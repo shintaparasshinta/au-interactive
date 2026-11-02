@@ -428,5 +428,53 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape' && activeApp) closeApp();
   });
 
+    /* ===== INTERAKSI ALBUM PHOTOS ===== */
+  const albumOverlay = document.getElementById('app-photos-album');
+  const albumTitle = document.getElementById('albumTitle');
+  const albumGrid = document.getElementById('albumGrid');
+
+  // Data dummy album (kamu bisa ganti src dengan foto asli)
+  const albumData = {
+    'Recents': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25'],
+    'Favorites': ['2', '3', '5', '6', '8', '10', '11', '13', '15', '17'],
+    '4boiz': ['13', '14', '16', '19', '20', '21', '22', '23', '24', '25'],
+    'Videos': ['1', '4', '7', '10', '13'],
+    'Selfies': ['2', '5', '10', '13', '15', '18', '20', '22', '24', ],
+    'Screenshots': ['3', '6', '9', '12', '15']
+  };
+
+  // Fungsi buka album
+  window.openAlbum = function(albumName) {
+    albumTitle.textContent = albumName;
+    albumGrid.innerHTML = ''; // Kosongin grid dulu
+    
+    // Isi foto berdasarkan album
+    const photos = albumData[albumName] || [];
+    photos.forEach(photoId => {
+      const img = document.createElement('img');
+      img.src = `photos/${photoId}.png`;
+      img.className = 'photo-item';
+      albumGrid.appendChild(img);
+    });
+
+    albumOverlay.classList.add('open');
+  };
+
+  // Fungsi tutup album
+  window.closeAlbum = function() {
+    albumOverlay.classList.remove('open');
+  };
+
+  // Sambungin klik dari halaman Photos Utama
+  document.querySelectorAll('.ph-sec-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const label = item.querySelector('.ph-sec-label').textContent.split('\n')[0].trim();
+      // Mapping nama album
+      if (label.includes('Recents')) openAlbum('Recents');
+      else if (label.includes('Favorites')) openAlbum('Favorites');
+      else if (label.includes('4boiz')) openAlbum('4boiz');
+    });
+  });
+
   render(0);
 });

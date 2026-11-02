@@ -716,3 +716,56 @@ body {
 
 /* Home indicator jadi putih di atas app gelap */
 .app-photos-mode .home-indicator { background: #fff; }
+
+/* =====================================================
+   APP: PHOTOS ALBUM (Recents, Favorites, dll)
+   ===================================================== */
+#app-photos-album {
+  background: #000;
+  z-index: 2600; /* Di atas app-photos utama */
+}
+
+/* Header Album */
+.album-header {
+  flex-direction: column;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  padding-top: 75px; 
+  padding-bottom: 85px;
+  height: 135px; /* Sedikit ditinggiin biar lega */
+  gap: 12px; /* <--- INI KUNCINYA. Jarak antara Library & Recents */
+}
+
+.album-back {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Jarak antara panah dan teks */
+  color: #007AFF;
+  font-size: 17px;
+  font-weight: 400;
+  cursor: pointer;
+  margin-left: -5px;
+  margin-bottom: 2px; /* Kasih jarak dikit ke bawah */
+}
+
+.album-title {
+  color: #fff;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+/* Grid Album (Full 3 Kolom tanpa gap) */
+#albumGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px; /* Gap tipis aja */
+}
+
+#albumGrid .photo-item {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+}

@@ -322,9 +322,9 @@
               <div class="ph-section">
                 <div class="ph-sec-title">Media Types</div>
                 <div class="ph-list">
-                  <div class="ph-list-item">Videos</div>
-                  <div class="ph-list-item">Selfies</div>
-                  <div class="ph-list-item">Screenshots</div>
+                  <div class="ph-list-item" onclick="openAlbum('Videos')">Videos</div>
+                  <div class="ph-list-item" onclick="openAlbum('Selfies')">Selfies</div>
+                  <div class="ph-list-item" onclick="openAlbum('Screenshots')">Screenshots</div>
                 </div>
               </div>
 
@@ -340,6 +340,36 @@
             </div>
           </div>
 
+          <div class="photos-tab-bar">
+            <div class="ph-tab">Years</div>
+            <div class="ph-tab">Months</div>
+            <div class="ph-tab active">All</div>
+          </div>
+
+        </div>
+      </div>
+
+            <!-- ================= APP: PHOTOS ALBUM ================= -->
+      <div class="app-overlay" id="app-photos-album">
+        <div class="photos-app">
+          
+          <!-- Header Album -->
+          <div class="photos-header album-header">
+            <div class="album-back" onclick="closeAlbum()">
+              <svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18L2 10L10 2"/></svg>
+              <span>Library</span>
+            </div>
+            <div class="album-title" id="albumTitle">Recents</div>
+          </div>
+
+          <!-- Area Scroll Album -->
+          <div class="photos-scroll-area">
+            <div class="photos-grid" id="albumGrid">
+              <!-- Foto akan diisi otomatis via JS -->
+            </div>
+          </div>
+
+          <!-- Tab Bar Bawah -->
           <div class="photos-tab-bar">
             <div class="ph-tab">Years</div>
             <div class="ph-tab">Months</div>
