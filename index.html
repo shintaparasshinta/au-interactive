@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=10" />
+  <link rel="stylesheet" href="style.css?v=14" />
 </head>
 <body>
 
@@ -250,7 +250,6 @@
       </div>
 
       <!-- ================= APP: PHOTOS ================= -->
-      <!-- DIPINDAH KE SINI, DI LUAR SCREEN HOME BIAR BISA DI-SCROLL -->
       <div class="app-overlay" id="app-photos">
         <div class="photos-app">
           
@@ -284,17 +283,24 @@
               <img src="photos/16.png" alt="16" class="photo-item">
               <img src="photos/17.png" alt="17" class="photo-item">
               <img src="photos/18.png" alt="18" class="photo-item">
+              <img src="photos/19.png" alt="19" class="photo-item">
+              <img src="photos/20.png" alt="20" class="photo-item">
+              <img src="photos/21.png" alt="21" class="photo-item">
+              <img src="photos/22.png" alt="22" class="photo-item">
+              <img src="photos/23.png" alt="23" class="photo-item">
+              <img src="photos/24.png" alt="24" class="photo-item">
+              <img src="photos/25.png" alt="25" class="photo-item">
             </div>
 
             <div class="photos-bottom-sections">
               <div class="ph-section">
                 <div class="ph-sec-title">Recent Days</div>
                 <div class="ph-sec-grid col-2">
-                  <div class="ph-sec-item">
+                  <div class="ph-sec-item" onclick="openAlbum('Today')">
                     <img src="photos/1.png" alt="Today">
                     <div class="ph-sec-label">Today</div>
                   </div>
-                  <div class="ph-sec-item">
+                  <div class="ph-sec-item" onclick="openAlbum('Yesterday')">
                     <img src="photos/2.png" alt="Yesterday">
                     <div class="ph-sec-label">Yesterday</div>
                   </div>
@@ -306,15 +312,15 @@
                 <div class="ph-sec-grid col-3">
                   <div class="ph-sec-item">
                     <img src="photos/3.png" alt="Recents">
-                    <div class="ph-sec-label">Recents<br><span>18</span></div>
+                    <div class="ph-sec-label">Recents<br><span>25</span></div>
                   </div>
                   <div class="ph-sec-item">
                     <img src="photos/4.png" alt="Favorites">
-                    <div class="ph-sec-label">Favorites<br><span>7</span></div>
+                    <div class="ph-sec-label">Favorites<br><span>10</span></div>
                   </div>
                   <div class="ph-sec-item">
                     <img src="photos/5.png" alt="4boiz">
-                    <div class="ph-sec-label">4boiz<br><span>9</span></div>
+                    <div class="ph-sec-label">4boiz<br><span>10</span></div>
                   </div>
                 </div>
               </div>
@@ -349,7 +355,7 @@
         </div>
       </div>
 
-            <!-- ================= APP: PHOTOS ALBUM ================= -->
+      <!-- ================= APP: PHOTOS ALBUM ================= -->
       <div class="app-overlay" id="app-photos-album">
         <div class="photos-app">
           
@@ -379,6 +385,48 @@
         </div>
       </div>
 
+      <!-- ================= APP: PHOTO FULLSCREEN ================= -->
+      <div class="app-overlay" id="app-photo-view">
+        <div class="photo-view-header">
+          <div class="pv-back" onclick="closePhotoView()">
+            <svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18L2 10L10 2"/></svg>
+            <span>Library</span>
+          </div>
+          <div class="pv-edit">Edit</div>
+        </div>
+
+        <div class="photo-view-content" id="pvStage">
+          <img class="pv-slide" id="pvPrev" src="" alt="" draggable="false">
+          <img class="pv-slide" id="pvCur" src="" alt="Fullscreen" draggable="false">
+          <img class="pv-slide" id="pvNext" src="" alt="" draggable="false">
+        </div>
+
+        <div class="photo-view-footer">
+          <!-- Share -->
+          <div class="pv-btn">
+            <svg viewBox="0 0 24 24" width="26" height="26" stroke="#007AFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          </div>
+          
+          <!-- Favorite (HATI) — Dikasih ID pvHeart -->
+          <div class="pv-btn" id="pvHeart">
+            <svg viewBox="0 0 24 24" width="26" height="26" stroke="#007AFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          
+          <!-- Info -->
+          <div class="pv-btn">
+            <svg viewBox="0 0 24 24" width="26" height="26" stroke="#007AFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </div>
+          
+          <!-- Trash -->
+          <div class="pv-btn">
+            <svg viewBox="0 0 24 24" width="26" height="26" stroke="#007AFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </div>
+        </div>
+        
+        <!-- Home indicator putih -->
+        <div class="home-indicator" style="background: #fff;"></div>
+      </div>
+
       <!-- Zona gesture "swipe up dari bawah" buat keluar dari app (aktif cuma pas app kebuka) -->
       <div class="home-gesture-zone" id="homeGesture"></div>
 
@@ -390,6 +438,6 @@
     <div class="hw-btn hw-power"></div>
   </div><!-- /viewport-wrapper -->
 
-  <script src="script.js?v=10"></script>
+  <script src="script.js?v=14"></script>
 </body>
 </html>

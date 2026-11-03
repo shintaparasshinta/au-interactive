@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
 
   /* ===== 1. SCALING RESPONSIVE ===== */
-  let frameScale = 1; // dipakai buat koreksi jarak drag (px layar -> px desain)
+  let frameScale = 1;
 
   function resizeFrame() {
     const isMobile = window.innerWidth <= 500;
@@ -15,9 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const designHeight = 932;
 
     if (isMobile) {
-      // HP: lebar layar diisi PENUH (nggak ada pinggiran kosong).
-      // Tinggi desain menyesuaikan layar; kalau pendek, layout dipadatkan sedikit (--vshift).
-      const MIN_H = 891; // tinggi desain minimum setelah dipadatkan (932 - 41)
+      const MIN_H = 891;
       const scale = Math.min(window.innerWidth / designWidth, window.innerHeight / MIN_H);
       const H = window.innerHeight / scale;
       frameScale = scale;
@@ -25,8 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
       root.style.setProperty('--vshift', String(clamp(designHeight - H, 0, 41)));
 
       wrapper.style.zoom = '1';
-      // Lebar desain ikut melebar kalau layar lebih "pendek" dari rasio desain,
-      // jadi frame selalu menutupi seluruh lebar layar (tanpa pinggiran kosong)
       wrapper.style.width = (window.innerWidth / scale) + 'px';
       wrapper.style.height = H + 'px';
       wrapper.style.position = 'absolute';
@@ -67,30 +63,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const swipeUpText = document.getElementById('swipeUpText');
 
   const OPEN_DIST = 380;
-  let state = 'lock'; // 'lock' | 'passcode' | 'home'
+  let state = 'lock';
 
-  /* ===== 3. ANIMASI TRANSISI LOCK <-> PASSCODE =====
-     Satu nilai d (0 = lock, OPEN_DIST = passcode) mengatur semuanya:
-     dipakai saat drag (ikut jari) dan saat animasi (tap / lepas jari). */
+  /* ===== 3. ANIMASI TRANSISI LOCK <-> PASSCODE ===== */
   function render(d) {
     d = clamp(d, 0, OPEN_DIST);
     const p = d / OPEN_DIST;
 
-    // Lock screen: naik ngikutin jari, memudar lebih cepat
     lockContent.style.transform = `translate3d(0, ${-d}px, 0)`;
     lockContent.style.setProperty('--fade', 1 - clamp(p * 1.6, 0, 1));
 
-    // Wallpaper: blur bertahap (desktop = .lock-bg, HP = background body)
     const blur = p * 10;
     lockBg.style.filter = `blur(${blur}px)`;
     root.style.setProperty('--bg-blur', `${blur}px`);
 
-    // Passcode: fade in sambil naik pelan dari bawah
     passcodeScreen.style.setProperty('--pfade', clamp((p - 0.15) / 0.85, 0, 1));
     passcodeBody.style.transform = `translate3d(0, ${(1 - p) * 60}px, 0)`;
   }
 
-  // class 'animating' dipasang di frame + <html> (html buat transisi blur wallpaper di HP)
   function setAnimating(on) {
     frame.classList.toggle('animating', on);
     root.classList.toggle('animating', on);
@@ -125,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let startY = 0;
   let lastY = 0;
   let lastT = 0;
-  let velocity = 0; // px/ms, positif = ke atas
+  let velocity = 0;
   let lastDragDist = 0;
 
   lockScreen.addEventListener('pointerdown', (e) => {
@@ -135,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lastT = performance.now();
     velocity = 0;
     clearTimeout(animTimer);
-    setAnimating(false); // matiin transisi biar 1:1 sama jari
+    setAnimating(false);
   });
 
   window.addEventListener('pointermove', (e) => {
@@ -156,20 +146,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const d = (startY - e.clientY) / frameScale;
     lastDragDist = Math.abs(d);
 
-    // Tap tanpa geser: biarin handler click yang kerja
     if (lastDragDist < 8) {
       render(0);
       return;
     }
 
-    if (d > 120 || velocity > 0.5) openPasscode(); // jarak cukup atau flick cepat
+    if (d > 120 || velocity > 0.5) openPasscode();
     else animateTo(0);
   }
 
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);
 
-  // Tap notifikasi / teks "Swipe up" -> buka passcode (diabaikan kalau barusan di-drag)
   document.querySelectorAll('.notif-item').forEach(item => {
     item.addEventListener('click', () => {
       if (lastDragDist < 8) openPasscode();
@@ -217,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state = 'home';
       dots.forEach(d => d.style.background = '#34C759');
       setTimeout(() => {
-        homeScreen.classList.add('active'); // home fade in di atas passcode
+        homeScreen.classList.add('active');
         root.classList.add('home-mode');
         setTimeout(() => {
           passcodeScreen.classList.remove('active');
@@ -234,11 +222,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (keypad) {
-    // pointerdown = langsung kebaca pas jari nempel (click baru nyala setelah jari diangkat)
     keypad.addEventListener('pointerdown', (e) => {
       const btn = e.target.closest('.key');
       if (!btn || btn.disabled || btn.classList.contains('key-empty')) return;
-      e.preventDefault(); // cegah click susulan biar nggak kehitung dua kali
+      e.preventDefault();
       const key = btn.dataset.key;
       if (key) handleKey(key);
     });
@@ -286,29 +273,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-    /* ===== HOME SCREEN INTERACTION ===== */
-  document.querySelectorAll('#screen-home .app-icon').forEach(icon => {
-    icon.addEventListener('click', (e) => {
-      e.stopPropagation();
-      // Nanti kita arahkan ke App Overlay yang sesuai
-      // Contoh: kalau yang diklik ikon iMessage (warna hijau dock)
-      if (icon.querySelector('path[d*="M20 2H4"]')) {
-        alert("Membuka iMessage...");
-      }
-    });
-  });
-
-  /* ===== APP OVERLAY: buka dari ikon, keluar dengan swipe up dari bawah ===== */
+  /* ===== 7. APP OVERLAY: buka dari ikon, keluar swipe up ===== */
   const homeGesture = document.getElementById('homeGesture');
 
-  // Daftar app: ikon di home -> overlay-nya. Tambah app baru tinggal nambah baris di sini.
   const APPS = [
     { icon: 'img[alt="Photos"]', overlay: 'app-photos' },
   ];
 
-  let activeApp = null;   // { ov, iconEl, mode }
+  let activeApp = null;
 
-  // Posisi & ukuran ikon relatif ke pusat frame (px desain) = titik asal/tujuan animasi zoom
   function iconOrigin(iconEl) {
     const fr = frame.getBoundingClientRect();
     const ir = iconEl.getBoundingClientRect();
@@ -329,22 +302,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const o = iconOrigin(iconEl);
     activeApp = { ov, iconEl, mode: app.overlay + '-mode' };
 
-    // Start: kecil di posisi ikon
     ov.style.transition = 'none';
     ov.style.transform = iconTransform(o);
     ov.style.opacity = '0';
     ov.style.borderRadius = (15 / o.s) + 'px';
     ov.classList.add('open');
-    void ov.offsetWidth; // paksa browser "mencatat" posisi awal
+    void ov.offsetWidth;
 
-    // Zoom ke layar penuh
     ov.style.transition = `transform 0.5s ${EASE}, opacity 0.25s ease, border-radius 0.5s ${EASE}`;
     ov.style.transform = 'translate3d(0, 0, 0) scale(1)';
     ov.style.opacity = '1';
     ov.style.borderRadius = '0px';
 
-    root.classList.add(activeApp.mode);   // status bar mode gelap
-    frame.classList.add('app-open');      // aktifin zona gesture bawah
+    root.classList.add(activeApp.mode);
+    frame.classList.add('app-open');
   }
 
   function closeApp() {
@@ -352,7 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const { ov, iconEl, mode } = activeApp;
     activeApp = null;
 
-    // Mengecil balik ke ikonnya
     const o = iconOrigin(iconEl);
     ov.style.transition = `transform 0.45s ${EASE}, opacity 0.3s ease 0.1s, border-radius 0.45s ease, box-shadow 0.3s ease`;
     ov.style.transform = iconTransform(o);
@@ -365,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => {
       ov.classList.remove('open');
-      ov.style.cssText = ''; // balik ke gaya awal dari CSS
+      ov.style.cssText = '';
     }, 480);
   }
 
@@ -374,14 +344,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (icon) icon.addEventListener('click', () => openApp(app, icon));
   });
 
-  // --- Gesture keluar: tarik ke atas dari tepi bawah ---
   let appDrag = null;
 
   homeGesture.addEventListener('pointerdown', (e) => {
     if (!activeApp) return;
     homeGesture.setPointerCapture(e.pointerId);
     appDrag = { startY: e.clientY, lastY: e.clientY, lastT: performance.now(), v: 0, d: 0 };
-    activeApp.ov.style.transition = 'none'; // ikut jari 1:1
+    activeApp.ov.style.transition = 'none';
   });
 
   homeGesture.addEventListener('pointermove', (e) => {
@@ -396,7 +365,6 @@ document.addEventListener('DOMContentLoaded', () => {
     appDrag.d = d;
     const p = clamp(d / 320, 0, 1);
 
-    // App mengecil jadi "kartu" sambil naik pelan
     const ov = activeApp.ov;
     ov.style.transform = `translate3d(0, ${-d * 0.35}px, 0) scale(${1 - p * 0.5})`;
     ov.style.borderRadius = (54 + p * 50) + 'px';
@@ -410,9 +378,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!activeApp) return;
 
     if (ad.d > 110 || ad.v > 0.5) {
-      closeApp(); // cukup jauh atau flick cepat -> keluar
+      closeApp();
     } else {
-      // Belum cukup: balik lagi ke layar penuh
       const ov = activeApp.ov;
       ov.style.transition = `transform 0.4s ${EASE}, border-radius 0.4s ease, box-shadow 0.4s ease`;
       ov.style.transform = 'translate3d(0, 0, 0) scale(1)';
@@ -423,32 +390,64 @@ document.addEventListener('DOMContentLoaded', () => {
   homeGesture.addEventListener('pointerup', endAppDrag);
   homeGesture.addEventListener('pointercancel', endAppDrag);
 
-  // Cadangan buat desktop: tombol Esc juga keluar dari app
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && activeApp) closeApp();
   });
 
-    /* ===== INTERAKSI ALBUM PHOTOS ===== */
+  /* ===== 8. GLOBAL FAVORITE LOGIC ===== */
+  // Daftar ID foto yang udah di-love
+  let favoritePhotos = ['2', '4', '7', '9', '13', '16', '20'];
+
+  // Cek apakah src foto itu ada di daftar favorit
+  function isFavorite(src) {
+    if (!src) return false;
+    const fileName = src.split('/').pop().replace('.png', '').replace('.jpg', '');
+    return favoritePhotos.includes(fileName);
+  }
+
+  // Refresh semua tanda love di layar (thumbnail grid, album, dan fullscreen)
+  function refreshAllFavoriteUI() {
+    // 1. Update semua thumbnail di grid & album
+    document.querySelectorAll('.photo-item').forEach(img => {
+      if (isFavorite(img.src)) {
+        img.classList.add('is-favorite');
+      } else {
+        img.classList.remove('is-favorite');
+      }
+    });
+
+    // 2. Update ikon hati di layar fullscreen (kalau lagi kebuka)
+    const heartBtn = document.getElementById('pvHeart');
+    const pvCur = document.getElementById('pvCur');
+    if (heartBtn && pvCur && pvCur.src) {
+      if (isFavorite(pvCur.src)) {
+        heartBtn.classList.add('favorited');
+      } else {
+        heartBtn.classList.remove('favorited');
+      }
+    }
+  }
+
+  /* ===== 9. INTERAKSI ALBUM PHOTOS ===== */
   const albumOverlay = document.getElementById('app-photos-album');
   const albumTitle = document.getElementById('albumTitle');
   const albumGrid = document.getElementById('albumGrid');
 
-  // Data dummy album (kamu bisa ganti src dengan foto asli)
   const albumData = {
     'Recents': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25'],
-    'Favorites': ['2', '3', '5', '6', '8', '10', '11', '13', '15', '17'],
+    'Favorites': ['2', '3', '5', '8', '9', '10', '11', '13', '15', '17'],
     '4boiz': ['13', '14', '16', '19', '20', '21', '22', '23', '24', '25'],
     'Videos': ['1', '4', '7', '10', '13'],
-    'Selfies': ['2', '5', '10', '13', '15', '18', '20', '22', '24', ],
-    'Screenshots': ['3', '6', '9', '12', '15']
+    'Selfies': ['2', '5', '10', '13', '15', '18', '20', '22', '24'],
+    'Screenshots': ['3', '6', '9', '12', '15'],
+    'Today': ['1', '2', '3', '4', '5', '6'],
+    'Yesterday': ['7', '8', '9', '10']
   };
 
-  // Fungsi buka album
   window.openAlbum = function(albumName) {
     albumTitle.textContent = albumName;
-    albumGrid.innerHTML = ''; // Kosongin grid dulu
+    albumGrid.innerHTML = '';
     
-    // Isi foto berdasarkan album
     const photos = albumData[albumName] || [];
     photos.forEach(photoId => {
       const img = document.createElement('img');
@@ -457,24 +456,261 @@ document.addEventListener('DOMContentLoaded', () => {
       albumGrid.appendChild(img);
     });
 
+    // Refresh status love biar muncul di album
+    refreshAllFavoriteUI();
+    
     albumOverlay.classList.add('open');
   };
 
-  // Fungsi tutup album
   window.closeAlbum = function() {
     albumOverlay.classList.remove('open');
   };
 
-  // Sambungin klik dari halaman Photos Utama
   document.querySelectorAll('.ph-sec-item').forEach(item => {
     item.addEventListener('click', () => {
       const label = item.querySelector('.ph-sec-label').textContent.split('\n')[0].trim();
-      // Mapping nama album
       if (label.includes('Recents')) openAlbum('Recents');
       else if (label.includes('Favorites')) openAlbum('Favorites');
       else if (label.includes('4boiz')) openAlbum('4boiz');
     });
   });
+
+  /* ===== 10. FULLSCREEN PHOTO & SWIPE ===== */
+  const photoView = document.getElementById('app-photo-view');
+  const pvStage = photoView.querySelector('.photo-view-content');
+  const pvPrev = document.getElementById('pvPrev');
+  const pvCur = document.getElementById('pvCur');
+  const pvNext = document.getElementById('pvNext');
+  const pvTransition = 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)';
+
+  const PV_GAP = 20;
+  let currentPhotoList = [];
+  let currentPhotoIndex = 0;
+  let pvAnimating = false;
+  let pvTimer = null;
+
+  const pvWidth = () => pvStage.offsetWidth || 430;
+
+  function pvSetSlides() {
+    const set = (el, i) => {
+      const src = currentPhotoList[i];
+      if (src) { el.src = src; el.style.visibility = 'visible'; }
+      else { el.removeAttribute('src'); el.style.visibility = 'hidden'; }
+    };
+    set(pvPrev, currentPhotoIndex - 1);
+    set(pvCur, currentPhotoIndex);
+    set(pvNext, currentPhotoIndex + 1);
+  }
+
+  function pvLayout(dx, animate) {
+    const step = pvWidth() + PV_GAP;
+    [pvPrev, pvCur, pvNext].forEach(el => { el.style.transition = animate ? pvTransition : 'none'; });
+    pvPrev.style.transform = `translate3d(${dx - step}px, 0, 0)`;
+    pvCur.style.transform  = `translate3d(${dx}px, 0, 0)`;
+    pvNext.style.transform = `translate3d(${dx + step}px, 0, 0)`;
+  }
+
+  window.openPhotoView = function(src, list = [], index = 0) {
+    clearTimeout(pvTimer);
+    pvAnimating = false;
+    currentPhotoList = list.length ? list : [src];
+    currentPhotoIndex = list.length ? index : 0;
+    
+    pvSetSlides();
+    pvLayout(0, false);
+    
+    // Sync status love pas buka
+    refreshAllFavoriteUI();
+
+    photoView.classList.add('open');
+    root.classList.add('app-photos-mode');
+  };
+
+  window.closePhotoView = function() {
+    photoView.classList.remove('open');
+    if (!document.getElementById('app-photos').classList.contains('open') &&
+        !document.getElementById('app-photos-album').classList.contains('open')) {
+      root.classList.remove('app-photos-mode');
+    }
+  };
+
+  document.addEventListener('click', (e) => {
+    const photoImg = e.target.closest('.photo-item');
+    if (photoImg) {
+      e.stopPropagation();
+      const container = photoImg.parentElement;
+      const allPhotos = Array.from(container.querySelectorAll('.photo-item'));
+      const allSrcs = allPhotos.map(img => img.src);
+      openPhotoView(photoImg.src, allSrcs, allPhotos.indexOf(photoImg));
+    }
+  });
+
+  // Toggle Love pas ikon hati di-klik
+  const heartBtn = document.getElementById('pvHeart');
+  if (heartBtn) {
+    heartBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const currentSrc = pvCur.src;
+      if (!currentSrc) return;
+
+      const fileName = currentSrc.split('/').pop().replace('.png', '').replace('.jpg', '');
+      
+      if (favoritePhotos.includes(fileName)) {
+        favoritePhotos = favoritePhotos.filter(id => id !== fileName);
+      } else {
+        favoritePhotos.push(fileName);
+      }
+      
+      // Update UI di seluruh aplikasi
+      refreshAllFavoriteUI();
+    });
+  }
+
+  // ===== SWIPE LOGIC (HP & Desktop) =====
+  let pvDrag = null;
+  let pvTouchId = null;
+
+  function pvStartDrag(clientX, clientY) {
+    if (!photoView.classList.contains('open') || pvAnimating) return false;
+    
+    pvDrag = { 
+      startX: clientX, 
+      startY: clientY, 
+      lastX: clientX, 
+      lastT: performance.now(), 
+      v: 0, 
+      dx: 0, 
+      dir: null 
+    };
+    pvLayout(0, false);
+    return true;
+  }
+
+  function pvMoveDrag(clientX, clientY, e) {
+    if (!pvDrag) return;
+    
+    const rawX = (clientX - pvDrag.startX) / frameScale;
+    const rawY = (clientY - pvDrag.startY) / frameScale;
+
+    if (!pvDrag.dir) {
+      if (Math.abs(rawX) > 8 || Math.abs(rawY) > 8) {
+        pvDrag.dir = Math.abs(rawX) >= Math.abs(rawY) ? 'h' : 'v';
+      } else {
+        return;
+      }
+    }
+    
+    if (pvDrag.dir !== 'h') return;
+
+    if (e && e.cancelable) e.preventDefault();
+
+    const now = performance.now();
+    const dt = now - pvDrag.lastT;
+    if (dt > 0) pvDrag.v = (clientX - pvDrag.lastX) / frameScale / dt;
+    pvDrag.lastX = clientX;
+    pvDrag.lastT = now;
+
+    const atStart = currentPhotoIndex === 0 && rawX > 0;
+    const atEnd = currentPhotoIndex === currentPhotoList.length - 1 && rawX < 0;
+    pvDrag.dx = (atStart || atEnd) ? rawX * 0.3 : rawX;
+    
+    pvLayout(pvDrag.dx, false);
+  }
+
+  function pvEndDrag() {
+    if (!pvDrag) return;
+    const d = pvDrag;
+    pvDrag = null;
+
+    if (d.dir !== 'h') { 
+      pvLayout(0, false); 
+      return; 
+    }
+
+    const W = pvWidth();
+    const step = W + PV_GAP;
+    const hasNext = currentPhotoIndex < currentPhotoList.length - 1;
+    const hasPrev = currentPhotoIndex > 0;
+    let dir = 0;
+
+    if ((d.dx < -W * 0.25 || d.v < -0.45) && hasNext) dir = 1;
+    else if ((d.dx > W * 0.25 || d.v > 0.45) && hasPrev) dir = -1;
+
+    pvAnimating = true;
+    pvLayout(-dir * step, true);
+
+    clearTimeout(pvTimer);
+    pvTimer = setTimeout(() => {
+      if (dir !== 0) {
+        currentPhotoIndex += dir;
+        pvSetSlides();
+        refreshAllFavoriteUI(); // <--- Update status love setelah ganti foto
+      }
+      pvLayout(0, false);
+      pvAnimating = false;
+    }, 400);
+  }
+
+  // Desktop
+  photoView.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.photo-view-header') || e.target.closest('.photo-view-footer')) return;
+    if (e.pointerType === 'touch') return; 
+    
+    if (pvStartDrag(e.clientX, e.clientY)) {
+      photoView.setPointerCapture(e.pointerId);
+    }
+  });
+
+  photoView.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch') return;
+    pvMoveDrag(e.clientX, e.clientY, e);
+  });
+
+  photoView.addEventListener('pointerup', (e) => {
+    if (e.pointerType === 'touch') return;
+    pvEndDrag();
+  });
+
+  photoView.addEventListener('pointercancel', (e) => {
+    if (e.pointerType === 'touch') return;
+    pvEndDrag();
+  });
+
+  // HP
+  photoView.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.photo-view-header') || e.target.closest('.photo-view-footer')) return;
+    if (e.touches.length > 1) return; 
+    
+    const touch = e.touches[0];
+    if (pvStartDrag(touch.clientX, touch.clientY)) {
+      pvTouchId = touch.identifier;
+    }
+  }, { passive: false });
+
+  photoView.addEventListener('touchmove', (e) => {
+    if (!pvDrag || pvTouchId === null) return;
+    const touch = Array.from(e.touches).find(t => t.identifier === pvTouchId);
+    if (touch) {
+      pvMoveDrag(touch.clientX, touch.clientY, e);
+    }
+  }, { passive: false });
+
+  photoView.addEventListener('touchend', (e) => {
+    if (!pvDrag || pvTouchId === null) return;
+    const touch = Array.from(e.changedTouches).find(t => t.identifier === pvTouchId);
+    if (touch) {
+      pvTouchId = null;
+      pvEndDrag();
+    }
+  });
+
+  photoView.addEventListener('touchcancel', () => {
+    pvTouchId = null;
+    pvEndDrag();
+  });
+
+  // Panggil refresh UI pas pertama kali load
+  refreshAllFavoriteUI();
 
   render(0);
 });

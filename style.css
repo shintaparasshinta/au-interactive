@@ -769,3 +769,136 @@ body {
   object-fit: cover;
   display: block;
 }
+
+/* =====================================================
+   APP: PHOTO FULLSCREEN (Preview Foto)
+   ===================================================== */
+#app-photo-view {
+  background: #000;
+  z-index: 2700;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#app-photo-view.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Header */
+.photo-view-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 120px; /* Ditinggiin dikit biar aman dari status bar */
+  padding: 75px 20px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 10;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+}
+
+.pv-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #007AFF;
+  font-size: 17px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.pv-edit {
+  color: #007AFF;
+  font-size: 17px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+/* Footer */
+.photo-view-footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 110px;
+  padding: 20px 40px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+}
+
+.pv-btn {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* Area foto: dimulai di bawah header (Library / Edit) dan berhenti di atas toolbar.
+   Foto portrait -> mentok atas-bawah area ini. Foto kotak / 3:4 -> mentok kiri-kanan layar. */
+.photo-view-content {
+  position: absolute;
+  top: 114px;
+  bottom: 120px;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.pv-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;      /* sisi yang paling "penuh" yang mentok, rasio asli tetap */
+  will-change: transform;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  transition: none;
+}
+.pv-slide.anim { transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1); }
+.pv-slide.empty { visibility: hidden; }
+
+/* Matiin scroll & zoom bawaan HP saat lagi di layar foto */
+#app-photo-view {
+  touch-action: none;
+}
+
+.photo-view-content {
+  touch-action: none;
+}
+
+/* Ikon Love jadi merah kalau udah di-favoritkan */
+.pv-btn.favorited svg {
+  fill: #FF3B30;
+  stroke: #FF3B30;
+}
+
+/* Thumbnail yang di-love */
+.photo-item.is-favorite::after {
+  content: '❤';
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  color: #FF3B30;
+  font-size: 16px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  z-index: 5;
+}
+
+.photo-item {
+  position: relative; /* Biar icon heart-nya bisa nempel */
+}
+
+/* Ikon Heart di Fullscreen (Merah kalau di-love) */
+#pvHeart.favorited svg {
+  fill: #FF3B30;
+  stroke: #FF3B30;
+}
