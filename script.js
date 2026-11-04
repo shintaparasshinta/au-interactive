@@ -395,19 +395,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ===== 8. GLOBAL FAVORITE LOGIC ===== */
-  // Daftar ID foto yang udah di-love
   let favoritePhotos = ['2', '4', '7', '9', '13', '16', '20'];
 
-  // Cek apakah src foto itu ada di daftar favorit
   function isFavorite(src) {
     if (!src) return false;
     const fileName = src.split('/').pop().replace('.png', '').replace('.jpg', '');
     return favoritePhotos.includes(fileName);
   }
 
-  // Refresh semua tanda love di layar (thumbnail grid, album, dan fullscreen)
   function refreshAllFavoriteUI() {
-    // 1. Update semua thumbnail di grid & album
     document.querySelectorAll('.photo-item').forEach(img => {
       if (isFavorite(img.src)) {
         img.classList.add('is-favorite');
@@ -416,7 +412,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // 2. Update ikon hati di layar fullscreen (kalau lagi kebuka)
     const heartBtn = document.getElementById('pvHeart');
     const pvCur = document.getElementById('pvCur');
     if (heartBtn && pvCur && pvCur.src) {
@@ -437,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'Recents': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25'],
     'Favorites': ['2', '3', '5', '8', '9', '10', '11', '13', '15', '17'],
     '4boiz': ['13', '14', '16', '19', '20', '21', '22', '23', '24', '25'],
-    'Videos': ['1', '4', '7', '10', '13'],
+    'Videos': ['v1', 'v2'],
     'Selfies': ['2', '5', '10', '13', '15', '18', '20', '22', '24'],
     'Screenshots': ['3', '6', '9', '12', '15'],
     'Today': ['1', '2', '3', '4', '5', '6'],
@@ -448,17 +443,25 @@ document.addEventListener('DOMContentLoaded', () => {
     albumTitle.textContent = albumName;
     albumGrid.innerHTML = '';
     
-    const photos = albumData[albumName] || [];
-    photos.forEach(photoId => {
-      const img = document.createElement('img');
-      img.src = `photos/${photoId}.png`;
-      img.className = 'photo-item';
-      albumGrid.appendChild(img);
+    const items = albumData[albumName] || [];
+    items.forEach(itemId => {
+      // Cek apakah ini video (v1, v2, dst)
+      if (itemId.startsWith('v')) {
+        const vid = document.createElement('video');
+        vid.src = `videos/${itemId}.mp4`;
+        vid.className = 'photo-item video-item';
+        vid.muted = true;
+        vid.playsInline = true;
+        albumGrid.appendChild(vid);
+      } else {
+        const img = document.createElement('img');
+        img.src = `photos/${itemId}.png`;
+        img.className = 'photo-item';
+        albumGrid.appendChild(img);
+      }
     });
 
-    // Refresh status love biar muncul di album
     refreshAllFavoriteUI();
-    
     albumOverlay.classList.add('open');
   };
 
@@ -475,12 +478,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ===== 10. FULLSCREEN PHOTO & SWIPE ===== */
+  /* ===== 10. FULLSCREEN PHOTO & VIDEO & SWIPE ===== */
   const photoView = document.getElementById('app-photo-view');
   const pvStage = photoView.querySelector('.photo-view-content');
   const pvPrev = document.getElementById('pvPrev');
   const pvCur = document.getElementById('pvCur');
   const pvNext = document.getElementById('pvNext');
+  const pvVideo = document.getElementById('pvVideo'); // Elemen video di fullscreen
   const pvTransition = 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)';
 
   const PV_GAP = 20;
@@ -491,23 +495,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const pvWidth = () => pvStage.offsetWidth || 430;
 
+  // Cek apakah src itu video
+  function isVideo(src) {
+    if (!src) return false;
+    return src.includes('.mp4') || src.includes('.webm');
+  }
+
   function pvSetSlides() {
     const set = (el, i) => {
       const src = currentPhotoList[i];
-      if (src) { el.src = src; el.style.visibility = 'visible'; }
-      else { el.removeAttribute('src'); el.style.visibility = 'hidden'; }
+      if (src && !isVideo(src)) { 
+        el.src = src; 
+        el.style.visibility = 'visible'; 
+      } else { 
+        el.removeAttribute('src'); 
+        el.style.visibility = 'hidden'; 
+      }
     };
     set(pvPrev, currentPhotoIndex - 1);
     set(pvCur, currentPhotoIndex);
     set(pvNext, currentPhotoIndex + 1);
+
+    // Handle video
+    if (isVideo(currentPhotoList[currentPhotoIndex])) {
+      pvVideo.src = currentPhotoList[currentPhotoIndex];
+      pvVideo.style.display = 'block';
+      pvVideo.play().catch(e => console.log('Video play error:', e));
+    } else {
+      pvVideo.pause();
+      pvVideo.style.display = 'none';
+      pvVideo.removeAttribute('src');
+    }
   }
 
   function pvLayout(dx, animate) {
     const step = pvWidth() + PV_GAP;
-    [pvPrev, pvCur, pvNext].forEach(el => { el.style.transition = animate ? pvTransition : 'none'; });
+    [pvPrev, pvCur, pvNext, pvVideo].forEach(el => { 
+      if(el) el.style.transition = animate ? pvTransition : 'none'; 
+    });
     pvPrev.style.transform = `translate3d(${dx - step}px, 0, 0)`;
     pvCur.style.transform  = `translate3d(${dx}px, 0, 0)`;
     pvNext.style.transform = `translate3d(${dx + step}px, 0, 0)`;
+    if (pvVideo.style.display === 'block') {
+      pvVideo.style.transform = `translate3d(${dx}px, 0, 0)`;
+    }
   }
 
   window.openPhotoView = function(src, list = [], index = 0) {
@@ -518,8 +549,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     pvSetSlides();
     pvLayout(0, false);
-    
-    // Sync status love pas buka
     refreshAllFavoriteUI();
 
     photoView.classList.add('open');
@@ -528,6 +557,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.closePhotoView = function() {
     photoView.classList.remove('open');
+    if (pvVideo) {
+      pvVideo.pause();
+      pvVideo.removeAttribute('src');
+      pvVideo.style.display = 'none';
+    }
     if (!document.getElementById('app-photos').classList.contains('open') &&
         !document.getElementById('app-photos-album').classList.contains('open')) {
       root.classList.remove('app-photos-mode');
@@ -535,21 +569,24 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   document.addEventListener('click', (e) => {
-    const photoImg = e.target.closest('.photo-item');
-    if (photoImg) {
+    const mediaElement = e.target.closest('.photo-item');
+    if (mediaElement) {
       e.stopPropagation();
-      const container = photoImg.parentElement;
-      const allPhotos = Array.from(container.querySelectorAll('.photo-item'));
-      const allSrcs = allPhotos.map(img => img.src);
-      openPhotoView(photoImg.src, allSrcs, allPhotos.indexOf(photoImg));
+      const container = mediaElement.parentElement;
+      const allMedia = Array.from(container.querySelectorAll('.photo-item'));
+      const allSrcs = allMedia.map(m => m.src || m.currentSrc);
+      openPhotoView(mediaElement.src || mediaElement.currentSrc, allSrcs, allMedia.indexOf(mediaElement));
     }
   });
 
-  // Toggle Love pas ikon hati di-klik
+  // Toggle Love
   const heartBtn = document.getElementById('pvHeart');
   if (heartBtn) {
     heartBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      // Jangan love video
+      if (isVideo(pvCur.src)) return; 
+
       const currentSrc = pvCur.src;
       if (!currentSrc) return;
 
@@ -560,8 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         favoritePhotos.push(fileName);
       }
-      
-      // Update UI di seluruh aplikasi
       refreshAllFavoriteUI();
     });
   }
@@ -572,23 +607,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function pvStartDrag(clientX, clientY) {
     if (!photoView.classList.contains('open') || pvAnimating) return false;
-    
-    pvDrag = { 
-      startX: clientX, 
-      startY: clientY, 
-      lastX: clientX, 
-      lastT: performance.now(), 
-      v: 0, 
-      dx: 0, 
-      dir: null 
-    };
+    pvDrag = { startX: clientX, startY: clientY, lastX: clientX, lastT: performance.now(), v: 0, dx: 0, dir: null };
     pvLayout(0, false);
     return true;
   }
 
   function pvMoveDrag(clientX, clientY, e) {
     if (!pvDrag) return;
-    
     const rawX = (clientX - pvDrag.startX) / frameScale;
     const rawY = (clientY - pvDrag.startY) / frameScale;
 
@@ -601,7 +626,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     if (pvDrag.dir !== 'h') return;
-
     if (e && e.cancelable) e.preventDefault();
 
     const now = performance.now();
@@ -613,7 +637,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const atStart = currentPhotoIndex === 0 && rawX > 0;
     const atEnd = currentPhotoIndex === currentPhotoList.length - 1 && rawX < 0;
     pvDrag.dx = (atStart || atEnd) ? rawX * 0.3 : rawX;
-    
     pvLayout(pvDrag.dx, false);
   }
 
@@ -622,10 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const d = pvDrag;
     pvDrag = null;
 
-    if (d.dir !== 'h') { 
-      pvLayout(0, false); 
-      return; 
-    }
+    if (d.dir !== 'h') { pvLayout(0, false); return; }
 
     const W = pvWidth();
     const step = W + PV_GAP;
@@ -644,7 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (dir !== 0) {
         currentPhotoIndex += dir;
         pvSetSlides();
-        refreshAllFavoriteUI(); // <--- Update status love setelah ganti foto
+        refreshAllFavoriteUI();
       }
       pvLayout(0, false);
       pvAnimating = false;
@@ -655,10 +675,7 @@ document.addEventListener('DOMContentLoaded', () => {
   photoView.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.photo-view-header') || e.target.closest('.photo-view-footer')) return;
     if (e.pointerType === 'touch') return; 
-    
-    if (pvStartDrag(e.clientX, e.clientY)) {
-      photoView.setPointerCapture(e.pointerId);
-    }
+    if (pvStartDrag(e.clientX, e.clientY)) photoView.setPointerCapture(e.pointerId);
   });
 
   photoView.addEventListener('pointermove', (e) => {
@@ -680,19 +697,14 @@ document.addEventListener('DOMContentLoaded', () => {
   photoView.addEventListener('touchstart', (e) => {
     if (e.target.closest('.photo-view-header') || e.target.closest('.photo-view-footer')) return;
     if (e.touches.length > 1) return; 
-    
     const touch = e.touches[0];
-    if (pvStartDrag(touch.clientX, touch.clientY)) {
-      pvTouchId = touch.identifier;
-    }
+    if (pvStartDrag(touch.clientX, touch.clientY)) pvTouchId = touch.identifier;
   }, { passive: false });
 
   photoView.addEventListener('touchmove', (e) => {
     if (!pvDrag || pvTouchId === null) return;
     const touch = Array.from(e.touches).find(t => t.identifier === pvTouchId);
-    if (touch) {
-      pvMoveDrag(touch.clientX, touch.clientY, e);
-    }
+    if (touch) pvMoveDrag(touch.clientX, touch.clientY, e);
   }, { passive: false });
 
   photoView.addEventListener('touchend', (e) => {
@@ -709,8 +721,6 @@ document.addEventListener('DOMContentLoaded', () => {
     pvEndDrag();
   });
 
-  // Panggil refresh UI pas pertama kali load
   refreshAllFavoriteUI();
-
   render(0);
 });

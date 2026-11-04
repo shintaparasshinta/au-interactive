@@ -902,3 +902,22 @@ body {
   fill: #FF3B30;
   stroke: #FF3B30;
 }
+
+/* Video di grid */
+.video-item {
+  object-fit: cover;
+  cursor: pointer;
+  background: #000;
+}
+
+/* Ikon play kecil di pojok video */
+.video-item::after {
+  content: '▶';
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  color: #fff;
+  font-size: 12px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  z-index: 5;
+}
