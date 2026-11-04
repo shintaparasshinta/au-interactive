@@ -447,12 +447,12 @@ document.addEventListener('DOMContentLoaded', () => {
     items.forEach(itemId => {
       // Cek apakah ini video (v1, v2, dst)
       if (itemId.startsWith('v')) {
-        const vid = document.createElement('video');
-        vid.src = `videos/${itemId}.mp4`;
-        vid.className = 'photo-item video-item';
-        vid.muted = true;
-        vid.playsInline = true;
-        albumGrid.appendChild(vid);
+        // Pakai img dengan data-video (thumbnail)
+        const img = document.createElement('img');
+        img.src = `photos/thumbnail-${itemId}.png`; 
+        img.dataset.video = `videos/${itemId}.mp4`;
+        img.className = 'photo-item video-thumb';
+        albumGrid.appendChild(img);
       } else {
         const img = document.createElement('img');
         img.src = `photos/${itemId}.png`;
@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const pvPrev = document.getElementById('pvPrev');
   const pvCur = document.getElementById('pvCur');
   const pvNext = document.getElementById('pvNext');
-  const pvVideo = document.getElementById('pvVideo'); // Elemen video di fullscreen
+  const pvVideo = document.getElementById('pvVideo');
   const pvTransition = 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)';
 
   const PV_GAP = 20;
@@ -495,30 +495,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const pvWidth = () => pvStage.offsetWidth || 430;
 
-  // Cek apakah src itu video
-  function isVideo(src) {
-    if (!src) return false;
-    return src.includes('.mp4') || src.includes('.webm');
-  }
-
   function pvSetSlides() {
-    const set = (el, i) => {
-      const src = currentPhotoList[i];
-      if (src && !isVideo(src)) { 
-        el.src = src; 
+    const currentItem = currentPhotoList[currentPhotoIndex];
+    const isVid = currentItem && currentItem.videoSrc;
+
+    // Set foto (kalau bukan video)
+    const setImg = (el, i) => {
+      const item = currentPhotoList[i];
+      if (item && item.src && !item.videoSrc) { 
+        el.src = item.src; 
         el.style.visibility = 'visible'; 
       } else { 
         el.removeAttribute('src'); 
         el.style.visibility = 'hidden'; 
       }
     };
-    set(pvPrev, currentPhotoIndex - 1);
-    set(pvCur, currentPhotoIndex);
-    set(pvNext, currentPhotoIndex + 1);
+    setImg(pvPrev, currentPhotoIndex - 1);
+    setImg(pvCur, currentPhotoIndex);
+    setImg(pvNext, currentPhotoIndex + 1);
 
     // Handle video
-    if (isVideo(currentPhotoList[currentPhotoIndex])) {
-      pvVideo.src = currentPhotoList[currentPhotoIndex];
+    if (isVid) {
+      pvVideo.src = currentItem.videoSrc;
       pvVideo.style.display = 'block';
       pvVideo.play().catch(e => console.log('Video play error:', e));
     } else {
@@ -541,10 +539,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  window.openPhotoView = function(src, list = [], index = 0) {
+  window.openPhotoView = function(currentItem, list = [], index = 0) {
     clearTimeout(pvTimer);
     pvAnimating = false;
-    currentPhotoList = list.length ? list : [src];
+    currentPhotoList = list.length ? list : [currentItem];
     currentPhotoIndex = list.length ? index : 0;
     
     pvSetSlides();
@@ -574,8 +572,20 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
       const container = mediaElement.parentElement;
       const allMedia = Array.from(container.querySelectorAll('.photo-item'));
-      const allSrcs = allMedia.map(m => m.src || m.currentSrc);
-      openPhotoView(mediaElement.src || mediaElement.currentSrc, allSrcs, allMedia.indexOf(mediaElement));
+      
+      // Mapping tiap elemen jadi objek: {src: ..., videoSrc: ...}
+      const allItems = allMedia.map(m => {
+        if (m.hasAttribute('data-video')) {
+          return { src: m.src, videoSrc: m.getAttribute('data-video') };
+        } else {
+          return { src: m.src || m.currentSrc };
+        }
+      });
+
+      const clickedIndex = allMedia.indexOf(mediaElement);
+      const clickedItem = allItems[clickedIndex];
+
+      openPhotoView(clickedItem, allItems, clickedIndex);
     }
   });
 
@@ -585,9 +595,12 @@ document.addEventListener('DOMContentLoaded', () => {
     heartBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       // Jangan love video
-      if (isVideo(pvCur.src)) return; 
+      if (pvCur && pvCur.src && pvCur.src.includes('.mp4')) return; 
+      // Jangan love video (check dari list)
+      const currentItem = currentPhotoList[currentPhotoIndex];
+      if (currentItem && currentItem.videoSrc) return;
 
-      const currentSrc = pvCur.src;
+      const currentSrc = currentItem ? currentItem.src : null;
       if (!currentSrc) return;
 
       const fileName = currentSrc.split('/').pop().replace('.png', '').replace('.jpg', '');
