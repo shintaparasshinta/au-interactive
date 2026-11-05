@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=14" />
+    <link rel="stylesheet" href="style.css?v=16" />
   </head>
   <body>
     <div class="viewport-wrapper">
@@ -469,43 +469,43 @@
               <div class="photos-grid">
                 <!-- VIDEO DI GRID PAKAI IMG + POSTER BIAR SCROLL MULUS -->
                 <img
-                  src="photos/thumbnail-v1.png"
+                  src="photos/t1.png"
                   data-video="videos/v1.mp4"
                   alt="Video 1"
                   class="photo-item video-thumb"
                 />
                 <img
-                  src="photos/thumbnail-v2.png"
+                  src="photos/t2.png"
                   data-video="videos/v2.mp4"
                   alt="Video 2"
                   class="photo-item video-thumb"
                 />
                 <img
-                  src="photos/thumbnail-v3.png"
+                  src="photos/t3.png"
                   data-video="videos/v3.mp4"
                   alt="Video 3"
                   class="photo-item video-thumb"
                 />
                 <img
-                  src="photos/thumbnail-v4.png"
+                  src="photos/t4.png"
                   data-video="videos/v4.mp4"
                   alt="Video 4"
                   class="photo-item video-thumb"
                 />
                 <img
-                  src="photos/thumbnail-v5.png"
+                  src="photos/t5.png"
                   data-video="videos/v5.mp4"
                   alt="Video 5"
                   class="photo-item video-thumb"
                 />
                 <img
-                  src="photos/thumbnail-v6.png"
+                  src="photos/t6.png"
                   data-video="videos/v6.mp4"
                   alt="Video 6"
                   class="photo-item video-thumb"
                 />
                 <img
-                  src="photos/thumbnail-v7.png"
+                  src="photos/t7.png"
                   data-video="videos/v7.mp4"
                   alt="Video 7"
                   class="photo-item video-thumb"
@@ -670,6 +670,10 @@
               </svg>
               <span>Library</span>
             </div>
+            <div class="pv-title">
+              <div class="pv-date">Today</div>
+              <div class="pv-time">21:45</div>
+            </div>
             <div class="pv-edit">Edit</div>
           </div>
 
@@ -689,9 +693,31 @@
               id="pvVideo"
               src=""
               playsinline
-              controls
               style="display: none; z-index: 10"
             ></video>
+
+            <!-- Tombol play besar (muncul pas video di-pause) -->
+            <button class="pv-bigplay" id="pvBigPlay" aria-label="Play">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="#fff">
+                <path
+                  d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Kontrol video ala iOS: play/pause + filmstrip scrubber + mute -->
+          <div class="pv-video-bar" id="pvVideoBar">
+            <button
+              class="pv-vbtn"
+              id="pvPlayBtn"
+              aria-label="Play/Pause"
+            ></button>
+            <div class="pv-strip" id="pvStrip">
+              <div class="pv-frames" id="pvFrames"></div>
+              <div class="pv-head" id="pvHead"></div>
+            </div>
+            <button class="pv-vbtn" id="pvMuteBtn" aria-label="Mute"></button>
           </div>
 
           <div class="photo-view-footer">
@@ -787,6 +813,6 @@
     </div>
     <!-- /viewport-wrapper -->
 
-    <script src="script.js?v=14"></script>
+    <script src="script.js?v=16"></script>
   </body>
 </html>

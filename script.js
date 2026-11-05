@@ -405,7 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function refreshAllFavoriteUI() {
     document.querySelectorAll('.photo-item').forEach(img => {
-      if (isFavorite(img.src)) {
+      if (isFavorite(img.dataset.full || img.src)) {
         img.classList.add('is-favorite');
       } else {
         img.classList.remove('is-favorite');
@@ -445,18 +445,22 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const items = albumData[albumName] || [];
     items.forEach(itemId => {
-      // Cek apakah ini video (v1, v2, dst)
       if (itemId.startsWith('v')) {
-        // Pakai img dengan data-video (thumbnail)
         const img = document.createElement('img');
         img.src = `photos/thumbnail-${itemId}.png`; 
         img.dataset.video = `videos/${itemId}.mp4`;
+        img.dataset.poster = img.src;
         img.className = 'photo-item video-thumb';
+        img.alt = `Video ${itemId.toUpperCase()}`;
+        img.setAttribute('role', 'button');
+        img.tabIndex = 0;
+        img.dataset.full = new URL(img.src, document.baseURI).href;
         albumGrid.appendChild(img);
       } else {
         const img = document.createElement('img');
         img.src = `photos/${itemId}.png`;
         img.className = 'photo-item';
+        img.dataset.full = new URL(img.src, document.baseURI).href;
         albumGrid.appendChild(img);
       }
     });
@@ -499,9 +503,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentItem = currentPhotoList[currentPhotoIndex];
     const isVid = currentItem && currentItem.videoSrc;
 
-    // Set foto (kalau bukan video)
     const setImg = (el, i) => {
       const item = currentPhotoList[i];
+      // HANYA tampilkan foto kalau BUKAN video
       if (item && item.src && !item.videoSrc) { 
         el.src = item.src; 
         el.style.visibility = 'visible'; 
@@ -516,13 +520,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle video
     if (isVid) {
-      pvVideo.src = currentItem.videoSrc;
+      // Reset state setiap kali pindah ke video agar preview lama tidak tertinggal.
+      pvVideo.pause();
+      pvVideo.classList.remove('ready');
+      pvVideo.poster = currentItem.posterSrc || '';
+      pvVideo.muted = pvMuted;
+      pvVideo.src = new URL(currentItem.videoSrc, document.baseURI).href;
+      pvVideo.preload = 'auto';
       pvVideo.style.display = 'block';
-      pvVideo.play().catch(e => console.log('Video play error:', e));
+      photoView.classList.add('has-video');
+      pvVideo.load();
+
+      // Muted autoplay lebih kompatibel di browser HP.
+      const playAttempt = pvVideo.play();
+      if (playAttempt && typeof playAttempt.catch === 'function') {
+        playAttempt.catch(() => photoView.classList.add('paused'));
+      }
     } else {
       pvVideo.pause();
       pvVideo.style.display = 'none';
       pvVideo.removeAttribute('src');
+      pvVideo.removeAttribute('poster');
+      pvVideo.classList.remove('ready');
+      photoView.classList.remove('has-video', 'paused');
     }
   }
 
@@ -549,12 +569,13 @@ document.addEventListener('DOMContentLoaded', () => {
     pvLayout(0, false);
     refreshAllFavoriteUI();
 
+    photoView.classList.remove('chrome-hidden');
     photoView.classList.add('open');
     root.classList.add('app-photos-mode');
   };
 
   window.closePhotoView = function() {
-    photoView.classList.remove('open');
+    photoView.classList.remove('open', 'has-video', 'paused', 'chrome-hidden');
     if (pvVideo) {
       pvVideo.pause();
       pvVideo.removeAttribute('src');
@@ -566,27 +587,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // GLOBAL EVENT LISTENER UNTUK SEMUA .photo-item
   document.addEventListener('click', (e) => {
     const mediaElement = e.target.closest('.photo-item');
-    if (mediaElement) {
-      e.stopPropagation();
-      const container = mediaElement.parentElement;
-      const allMedia = Array.from(container.querySelectorAll('.photo-item'));
-      
-      // Mapping tiap elemen jadi objek: {src: ..., videoSrc: ...}
-      const allItems = allMedia.map(m => {
-        if (m.hasAttribute('data-video')) {
-          return { src: m.src, videoSrc: m.getAttribute('data-video') };
-        } else {
-          return { src: m.src || m.currentSrc };
-        }
-      });
+    if (!mediaElement) return;
+    
+    // JANGAN pakai e.preventDefault(), cukup stopPropagation
+    e.stopPropagation();
 
-      const clickedIndex = allMedia.indexOf(mediaElement);
-      const clickedItem = allItems[clickedIndex];
+    const container = mediaElement.parentElement;
+    const allMedia = Array.from(container.querySelectorAll('.photo-item'));
+    
+    const allItems = allMedia.map(m => {
+      if (m.dataset.video) {
+        return {
+          src: m.dataset.full || m.src,
+          videoSrc: m.dataset.video,
+          posterSrc: m.dataset.poster || m.src
+        };
+      } else {
+        return { src: m.dataset.full || m.src || m.currentSrc };
+      }
+    });
 
-      openPhotoView(clickedItem, allItems, clickedIndex);
-    }
+    const clickedIndex = allMedia.indexOf(mediaElement);
+    const clickedItem = allItems[clickedIndex];
+
+    openPhotoView(clickedItem, allItems, clickedIndex);
   });
 
   // Toggle Love
@@ -594,9 +621,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (heartBtn) {
     heartBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Jangan love video
-      if (pvCur && pvCur.src && pvCur.src.includes('.mp4')) return; 
-      // Jangan love video (check dari list)
       const currentItem = currentPhotoList[currentPhotoIndex];
       if (currentItem && currentItem.videoSrc) return;
 
@@ -614,7 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ===== SWIPE LOGIC (HP & Desktop) =====
+  // ===== SWIPE LOGIC =====
   let pvDrag = null;
   let pvTouchId = null;
 
@@ -686,7 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Desktop
   photoView.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('.photo-view-header') || e.target.closest('.photo-view-footer')) return;
+    if (e.target.closest('.photo-view-header, .photo-view-footer, .pv-video-bar, .pv-bigplay')) return;
     if (e.pointerType === 'touch') return; 
     if (pvStartDrag(e.clientX, e.clientY)) photoView.setPointerCapture(e.pointerId);
   });
@@ -708,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // HP
   photoView.addEventListener('touchstart', (e) => {
-    if (e.target.closest('.photo-view-header') || e.target.closest('.photo-view-footer')) return;
+    if (e.target.closest('.photo-view-header, .photo-view-footer, .pv-video-bar, .pv-bigplay')) return;
     if (e.touches.length > 1) return; 
     const touch = e.touches[0];
     if (pvStartDrag(touch.clientX, touch.clientY)) pvTouchId = touch.identifier;
@@ -733,6 +757,129 @@ document.addEventListener('DOMContentLoaded', () => {
     pvTouchId = null;
     pvEndDrag();
   });
+
+  /* ===== 11. THUMBNAIL ===== */
+  const THUMB_PX = 400;
+  const thumbCache = new Map();
+
+  function getThumb(full) {
+    if (!thumbCache.has(full)) {
+      thumbCache.set(full, new Promise(resolve => {
+        const im = new Image();
+        im.decoding = 'async';
+        im.onload = async () => {
+          try {
+            const bmp = await createImageBitmap(im, { resizeWidth: THUMB_PX, resizeQuality: 'medium' });
+            const c = document.createElement('canvas');
+            c.width = bmp.width; c.height = bmp.height;
+            c.getContext('2d').drawImage(bmp, 0, 0);
+            c.toBlob(b => resolve(b ? URL.createObjectURL(b) : full), 'image/jpeg', 0.85);
+          } catch (err) { resolve(full); }
+        };
+        im.onerror = () => resolve(full);
+        im.src = full;
+      }));
+    }
+    return thumbCache.get(full);
+  }
+
+  function applyThumb(img) {
+    const full = img.dataset.full || (img.dataset.full = img.src);
+    img.decoding = 'async';
+    getThumb(full).then(url => { if (url !== full) img.src = url; });
+  }
+
+  const initThumbs = () => document.querySelectorAll('#app-photos .photo-item').forEach(applyThumb);
+  (window.requestIdleCallback || setTimeout)(initThumbs, 200);
+
+  /* ===== 12. KONTROL VIDEO ===== */
+  const pvPlayBtn = document.getElementById('pvPlayBtn');
+  const pvMuteBtn = document.getElementById('pvMuteBtn');
+  const pvBigPlay = document.getElementById('pvBigPlay');
+  const pvStrip = document.getElementById('pvStrip');
+  const pvFrames = document.getElementById('pvFrames');
+  const pvHead = document.getElementById('pvHead');
+
+  const svg = (inner) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="#fff">${inner}</svg>`;
+  const ICON_PLAY = svg('<path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/>');
+  const ICON_PAUSE = svg('<rect x="5.5" y="4" width="4.2" height="16" rx="1.3"/><rect x="14.3" y="4" width="4.2" height="16" rx="1.3"/>');
+  const ICON_VOL = svg('<path d="M3 9.5v5h3.5L11.5 19V5L6.5 9.5H3z"/><path d="M15 8.5a5 5 0 0 1 0 7M17.8 5.8a9 9 0 0 1 0 12.4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>');
+  const ICON_MUTE = svg('<path d="M3 9.5v5h3.5L11.5 19V5L6.5 9.5H3z"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>');
+
+  let pvMuted = true;
+  let scrubbing = false;
+  let wasPlaying = false;
+  let headRaf = 0;
+  let framesToken = 0;
+
+  function pvUpdateHead() {
+    const p = pvVideo.duration ? pvVideo.currentTime / pvVideo.duration : 0;
+    pvHead.style.left = (clamp(p, 0, 1) * (pvStrip.clientWidth - 3)) + 'px';
+  }
+
+  function pvSyncPlayUI() {
+    const playing = scrubbing ? wasPlaying : (!pvVideo.paused && !pvVideo.ended);
+    photoView.classList.toggle('paused', !playing);
+    pvPlayBtn.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+  }
+
+  function pvHeadLoop() {
+    pvUpdateHead();
+    if (!pvVideo.paused) headRaf = requestAnimationFrame(pvHeadLoop);
+  }
+
+  function pvTogglePlay() {
+    if (pvVideo.paused) pvVideo.play().catch(() => {});
+    else pvVideo.pause();
+  }
+
+  pvVideo.addEventListener('play', () => { cancelAnimationFrame(headRaf); pvHeadLoop(); pvSyncPlayUI(); });
+  pvVideo.addEventListener('pause', pvSyncPlayUI);
+  pvVideo.addEventListener('ended', () => { pvUpdateHead(); pvSyncPlayUI(); });
+  pvVideo.addEventListener('seeked', pvUpdateHead);
+  pvVideo.addEventListener('loadeddata', () => {
+    pvVideo.classList.add('ready');
+    photoView.classList.remove('paused');
+  });
+  pvVideo.addEventListener('error', () => {
+    pvVideo.classList.remove('ready');
+    photoView.classList.add('paused');
+    console.error('Video gagal dimuat. Periksa file dan path:', pvVideo.currentSrc || pvVideo.src);
+  });
+
+  pvPlayBtn.addEventListener('click', (e) => { e.stopPropagation(); pvTogglePlay(); });
+  pvBigPlay.addEventListener('click', (e) => { e.stopPropagation(); pvTogglePlay(); });
+  pvMuteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    pvMuted = !pvMuted;
+    pvVideo.muted = pvMuted;
+    pvMuteBtn.innerHTML = pvMuted ? ICON_MUTE : ICON_VOL;
+  });
+  pvPlayBtn.innerHTML = ICON_PLAY;
+  pvMuteBtn.innerHTML = ICON_VOL;
+
+  function scrubTo(e) {
+    const r = pvStrip.getBoundingClientRect();
+    const p = clamp((e.clientX - r.left) / r.width, 0, 1);
+    if (pvVideo.duration) pvVideo.currentTime = p * pvVideo.duration;
+    pvUpdateHead();
+  }
+  pvStrip.addEventListener('pointerdown', (e) => {
+    pvStrip.setPointerCapture(e.pointerId);
+    wasPlaying = !pvVideo.paused && !pvVideo.ended;
+    scrubbing = true;
+    pvVideo.pause();
+    scrubTo(e);
+  });
+  pvStrip.addEventListener('pointermove', (e) => { if (scrubbing) scrubTo(e); });
+  const endScrub = () => {
+    if (!scrubbing) return;
+    scrubbing = false;
+    if (wasPlaying) pvVideo.play().catch(() => {});
+    pvSyncPlayUI();
+  };
+  pvStrip.addEventListener('pointerup', endScrub);
+  pvStrip.addEventListener('pointercancel', endScrub);
 
   refreshAllFavoriteUI();
   render(0);
