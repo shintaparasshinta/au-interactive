@@ -465,20 +465,27 @@ document.addEventListener("DOMContentLoaded", () => {
       "12",
       "13",
       "14",
+      "v1",
+      "v2",
       "15",
       "16",
       "17",
       "18",
       "19",
+      "v3",
       "20",
       "21",
+      "v4",
       "22",
+      "v5",
+      "v6",
       "23",
       "24",
       "25",
+      "v7"
     ],
     Favorites: ["2", "3", "5", "8", "9", "10", "11", "13", "15", "17"],
-    "4boiz": ["13", "14", "16", "19", "20", "21", "22", "23", "24", "25"],
+    "4boiz": ["13", "14", "v1", "v2", "16", "19", "v3", "20", "21", "v4", "22", "v5", "v6", "23", "24", "25", "v7"],
     Videos: ["v1", "v2", "v3", "v4", "v5", "v6", "v7"],
     Selfies: ["2", "5", "10", "13", "15", "18", "20", "22", "24"],
     Screenshots: ["3", "6", "9", "12", "15"],
@@ -495,8 +502,9 @@ document.addEventListener("DOMContentLoaded", () => {
       let img;
       if (itemId.startsWith("v")) {
         img = document.createElement("img");
-        img.src = `photos/thumbnail-${itemId}.png`;
-        img.dataset.video = `videos/${itemId}.mp4`;
+        // thumbnail video namanya t1..t7 (sama kayak di grid utama), bukan "thumbnail-v1"
+        img.src = `photos/t${itemId.slice(1)}.png`;
+        img.setAttribute("data-video", `videos/${itemId}.mp4`);
         img.className = "photo-item video-thumb";
         img.alt = itemId;
       } else {
@@ -560,9 +568,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const currentItem = currentPhotoList[currentPhotoIndex];
     const isVid = !!(currentItem && currentItem.videoSrc);
 
+    // Video juga dapat slide gambar (poster/thumbnail) — jadi pas swipe & pas
+    // video lagi loading nggak ada layar hitam kosong; video fade-in di atasnya.
     const setImg = (el, i) => {
       const item = currentPhotoList[i];
-      if (item && item.src && !item.videoSrc) {
+      if (item && item.src) {
         el.src = item.src;
         el.style.visibility = "visible";
       } else {
@@ -585,19 +595,23 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       pvVideo.load();
     } catch (_) {}
-    // FIX: jangan sentuh style.display — biarkan CSS class .ready yang atur
+    pvStopFilmstrip();
+    pvUpdateHead();
 
     if (isVid) {
       const src = pvResolveSrc(currentItem);
       pvVideo.muted = true; // Paksa mute biar autoplay jalan
       pvMuted = true;
-      pvVideo.src = src;
+      pvMuteBtn.innerHTML = ICON_MUTE;
+      // simpan token SEBELUM src di-set, dicek di loadeddata
+      pvVideo.dataset.loadToken = String(myToken);
       photoView.classList.add("has-video");
+      photoView.classList.remove("paused");
+      pvPlayBtn.innerHTML = ICON_PLAY;
+      pvVideo.src = src;
       try {
         pvVideo.load();
       } catch (_) {}
-      // FIX: simpan token ke dataset video, dicek di loadeddata
-      pvVideo.dataset.loadToken = String(myToken);
     } else {
       photoView.classList.remove("has-video", "paused");
     }
@@ -614,6 +628,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // FIX: SELALU translate video, nggak peduli display-nya apa.
     // Visibility diatur lewat class .ready di CSS.
     pvVideo.style.transform = `translate3d(${dx}px, 0, 0)`;
+    // jaga fade-in video (opacity) tetap jalan walau transform lagi "none"
+    pvVideo.style.transition =
+      (animate ? pvTransition + ", " : "") + "opacity 0.2s ease";
   }
 
   window.openPhotoView = function (currentItem, list = [], index = 0) {
@@ -639,9 +656,10 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         pvVideo.load();
       } catch (_) {}
-      // FIX: jangan set style.display — biarkan class .ready yang reset
       pvVideo.classList.remove("ready");
     }
+    pvLoadToken++; // batalkan event video yang masih nyangkut
+    pvStopFilmstrip();
     if (
       !document.getElementById("app-photos").classList.contains("open") &&
       !document.getElementById("app-photos-album").classList.contains("open")
@@ -765,6 +783,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!pvDrag) return;
     const d = pvDrag;
     pvDrag = null;
+
+    // Tap (nggak geser) = sembunyiin / munculin bar atas-bawah, kayak iOS
+    if (d.dir === null) {
+      photoView.classList.toggle("chrome-hidden");
+      pvLayout(0, false);
+      return;
+    }
 
     if (d.dir !== "h") {
       pvLayout(0, false);
@@ -917,7 +942,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const initThumbs = () =>
     document.querySelectorAll("#app-photos .photo-item").forEach(applyThumb);
-  (window.requestIdleCallback || setTimeout)(initThumbs, 200);
+  // requestIdleCallback butuh object ({timeout}), bukan angka — kalau angka dia
+  // melempar TypeError dan semua kode di bawahnya (kontrol video dll) nggak jalan.
+  if (window.requestIdleCallback) {
+    window.requestIdleCallback(initThumbs, { timeout: 200 });
+  } else {
+    setTimeout(initThumbs, 200);
+  }
 
   /* ===== 12. KONTROL VIDEO ===== */
   const pvPlayBtn = document.getElementById("pvPlayBtn");
@@ -952,9 +983,93 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function pvSyncPlayUI() {
+    // Abaikan event dari video yang srcnya sudah dicopot (pas ganti slide),
+    // biar tombol play besar nggak kedip.
+    if (!pvVideo.getAttribute("src")) return;
     const playing = scrubbing ? wasPlaying : !pvVideo.paused && !pvVideo.ended;
     photoView.classList.toggle("paused", !playing);
     pvPlayBtn.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+  }
+
+  /* --- Filmstrip: ambil frame asli dari video buat scrubber --- */
+  let stripToken = 0;
+
+  function pvStopFilmstrip() {
+    stripToken++;
+    pvFrames.innerHTML = "";
+  }
+
+  function pvBuildFilmstrip(src) {
+    const token = ++stripToken;
+    pvFrames.innerHTML = "";
+
+    const v = document.createElement("video");
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = "auto";
+    v.src = src;
+
+    const cleanup = () => {
+      v.removeAttribute("src");
+      try {
+        v.load();
+      } catch (_) {}
+    };
+
+    const waitSeek = () =>
+      new Promise((res) => {
+        const t = setTimeout(res, 1500);
+        v.addEventListener(
+          "seeked",
+          () => {
+            clearTimeout(t);
+            res();
+          },
+          { once: true },
+        );
+      });
+
+    v.addEventListener(
+      "loadedmetadata",
+      async () => {
+        if (token !== stripToken) return cleanup();
+        const W = pvStrip.clientWidth || 300;
+        const H = pvStrip.clientHeight || 44;
+        const n = Math.max(4, Math.round(W / (H * 0.6)));
+        const dur = v.duration || 1;
+        const fw = Math.ceil((W / n) * 2);
+        const fh = H * 2;
+
+        const canvases = [];
+        for (let i = 0; i < n; i++) {
+          const c = document.createElement("canvas");
+          c.width = fw;
+          c.height = fh;
+          pvFrames.appendChild(c);
+          canvases.push(c);
+        }
+
+        for (let i = 0; i < n; i++) {
+          if (token !== stripToken) return cleanup();
+          v.currentTime = Math.min(dur - 0.05, ((i + 0.5) / n) * dur);
+          await waitSeek();
+          if (token !== stripToken) return cleanup();
+          try {
+            const vw = v.videoWidth || fw;
+            const vh = v.videoHeight || fh;
+            const s = Math.max(fw / vw, fh / vh);
+            const dw = vw * s;
+            const dh = vh * s;
+            canvases[i]
+              .getContext("2d")
+              .drawImage(v, (fw - dw) / 2, (fh - dh) / 2, dw, dh);
+          } catch (_) {}
+        }
+        cleanup();
+      },
+      { once: true },
+    );
+    v.addEventListener("error", cleanup, { once: true });
   }
 
   function pvHeadLoop() {
@@ -978,43 +1093,56 @@ document.addEventListener("DOMContentLoaded", () => {
     pvSyncPlayUI();
   });
   pvVideo.addEventListener("seeked", pvUpdateHead);
+  pvVideo.addEventListener("timeupdate", pvUpdateHead);
+  pvVideo.addEventListener("loadedmetadata", pvUpdateHead);
+
+  // true kalau event ini milik video yang sekarang aktif (bukan sisa slide lama)
+  function pvIsActiveVideo() {
+    if (pvVideo.dataset.loadToken !== String(pvLoadToken)) return false;
+    const item = currentPhotoList[currentPhotoIndex];
+    return !!(
+      item &&
+      item.videoSrc &&
+      pvVideo.getAttribute("src") &&
+      pvVideo.src === pvResolveSrc(item)
+    );
+  }
 
   pvVideo.addEventListener("loadeddata", () => {
-    // FIX: cek token, pastikan video yang ke-load masih video yang aktif
-    const myToken = pvVideo.dataset.loadToken;
-    if (myToken !== String(pvLoadToken)) return;
+    if (!pvIsActiveVideo()) return;
 
     pvVideo.classList.add("ready");
+    pvBuildFilmstrip(pvVideo.src);
 
-    const currentItem = currentPhotoList[currentPhotoIndex];
-    if (currentItem && currentItem.videoSrc) {
-      // FIX: cek src match, biar nggak play video lama
-      const expectedSrc = pvResolveSrc(currentItem);
-      if (pvVideo.src !== expectedSrc) return;
-
-      const playPromise = pvVideo.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          console.log("Autoplay diblokir browser, nunggu user klik.");
-          photoView.classList.add("paused");
-          pvSyncPlayUI();
-        });
-      }
+    const playPromise = pvVideo.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Autoplay diblokir browser -> tampilkan tombol play besar
+        photoView.classList.add("paused");
+        pvPlayBtn.innerHTML = ICON_PLAY;
+      });
     }
   });
 
-  pvVideo.addEventListener("error", () => {
-    const code = pvVideo.error?.code;
-    console.error("Video Error Code:", code, "src:", pvVideo.currentSrc);
-
-    // Hapus class .ready biar video jadi transparan lagi (poster balik muncul)
-    pvVideo.classList.remove("ready");
-    photoView.classList.add("paused");
-    pvSyncPlayUI();
+  pvVideo.addEventListener("canplay", () => {
+    if (pvIsActiveVideo()) pvVideo.classList.add("ready");
   });
 
-  pvVideo.addEventListener("canplay", () => {
-    pvVideo.classList.add("ready");
+  pvVideo.addEventListener("error", () => {
+    // error palsu dari src yang sengaja dicopot -> abaikan
+    if (!pvVideo.getAttribute("src")) return;
+    const code = pvVideo.error && pvVideo.error.code;
+    console.error(
+      "Video Error Code:",
+      code,
+      "(4 = file nggak ketemu / codec nggak didukung) src:",
+      pvVideo.currentSrc,
+    );
+
+    // poster (thumbnail) tetap kelihatan, tombol play besar muncul
+    pvVideo.classList.remove("ready");
+    photoView.classList.add("paused");
+    pvPlayBtn.innerHTML = ICON_PLAY;
   });
 
   pvPlayBtn.addEventListener("click", (e) => {
