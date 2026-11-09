@@ -1630,11 +1630,33 @@ img.photo-item {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Video default: absolute, transparan (belum siap), dan nggak nge-block klik */
 #pvVideo {
-  z-index: 10;
-  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 50;
+  background-color: #000;
+  opacity: 0; /* transparan dulu */
+  pointer-events: none; /* jangan block klik tombol play */
   transition: opacity 0.2s ease;
 }
+
+/* Begitu video siap (loadeddata), baru munculin */
+#pvVideo.ready {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Tombol play besar harus di atas video */
+.pv-bigplay {
+  z-index: 60;
+}
+
 .pv-bigplay,
 .pv-video-bar,
 .pv-vbtn,
