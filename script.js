@@ -412,7 +412,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* ===== 8. GLOBAL FAVORITE LOGIC ===== */
-  let favoritePhotos = ["2", "4", "7", "9", "13", "16", "20"];
+  let favoritePhotos = ["2", "3", "6", "8", "11", "13", "14", "17", "20", "23", "24"];
 
   function isFavorite(src) {
     if (!src) return false;
@@ -424,14 +424,43 @@ document.addEventListener("DOMContentLoaded", () => {
     return favoritePhotos.includes(fileName);
   }
 
+  // <img> nggak bisa punya ::after, jadi tiap thumbnail dibungkus wrapper
+  // dan ikon love-nya berupa elemen <span> sungguhan di dalam wrapper.
+  function ensureThumbWrap(img) {
+    let w = img.parentElement;
+    if (
+      !w.classList.contains("video-item-wrapper") &&
+      !w.classList.contains("photo-wrap")
+    ) {
+      w = document.createElement("div");
+      w.className = "photo-wrap";
+      img.parentNode.insertBefore(w, img);
+      w.appendChild(img);
+    }
+    if (!w.querySelector(".fav-heart")) {
+      const h = document.createElement("span");
+      h.className = "fav-heart";
+      h.textContent = "❤";
+      w.appendChild(h);
+    }
+    return w;
+  }
+
+  const favNum = (id) => parseInt(id, 10) || 0;
+  const getFavoriteIds = () =>
+    [...favoritePhotos].sort((a, b) => favNum(a) - favNum(b));
+
   function refreshAllFavoriteUI() {
     document.querySelectorAll(".photo-item").forEach((img) => {
-      if (isFavorite(img.dataset.full || img.src)) {
-        img.classList.add("is-favorite");
-      } else {
-        img.classList.remove("is-favorite");
-      }
+      const w = ensureThumbWrap(img);
+      w.classList.toggle("is-favorite", isFavorite(img.dataset.full || img.src));
     });
+
+    // Jumlah di kartu album "Favorites" ikut update
+    const favCount = document.querySelector(
+      '.ph-sec-item img[alt="Favorites"] + .ph-sec-label span',
+    );
+    if (favCount) favCount.textContent = String(favoritePhotos.length);
 
     const heartBtn = document.getElementById("pvHeart");
     const pvCur = document.getElementById("pvCur");
@@ -482,10 +511,28 @@ document.addEventListener("DOMContentLoaded", () => {
       "23",
       "24",
       "25",
-      "v7"
+      "v7",
     ],
-    Favorites: ["2", "3", "5", "8", "9", "10", "11", "13", "15", "17"],
-    "4boiz": ["13", "14", "v1", "v2", "16", "19", "v3", "20", "21", "v4", "22", "v5", "v6", "23", "24", "25", "v7"],
+    Favorites: ["2", "3", "6", "8", "11", "13", "14", "17", "20", "23", "24"],
+    "4boiz": [
+      "13",
+      "14",
+      "v1",
+      "v2",
+      "16",
+      "19",
+      "v3",
+      "20",
+      "21",
+      "v4",
+      "22",
+      "v5",
+      "v6",
+      "23",
+      "24",
+      "25",
+      "v7",
+    ],
     Videos: ["v1", "v2", "v3", "v4", "v5", "v6", "v7"],
     Selfies: ["2", "5", "10", "13", "15", "18", "20", "22", "24"],
     Screenshots: ["3", "6", "9", "12", "15"],
@@ -493,31 +540,97 @@ document.addEventListener("DOMContentLoaded", () => {
     Yesterday: ["7", "8", "9", "10"],
   };
 
+  /* ===== 9.5 LOGIKA DURASI VIDEO THUMBNAIL ===== */
+  const durationCache = new Map();
+
+  function formatTime(seconds) {
+    if (isNaN(seconds) || seconds === Infinity) return "0:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  }
+
+  function loadVideoDuration(imgElement) {
+    const wrapper =
+      imgElement.closest(".video-item-wrapper") || imgElement.parentElement;
+    const videoSrc = imgElement.getAttribute("data-video");
+    if (!videoSrc || !wrapper) return;
+
+    // 1. Cek di cache dulu
+    if (durationCache.has(videoSrc)) {
+      wrapper.setAttribute("data-duration", durationCache.get(videoSrc));
+      return;
+    }
+
+    // 2. Kalau ada loading yang lagi jalan, tungguin aja
+    if (wrapper.dataset.loadingDur) return;
+    wrapper.dataset.loadingDur = "true";
+
+    // 3. Bikin elemen video virtual buat baca metadata
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.src = videoSrc;
+
+    v.onloadedmetadata = () => {
+      const dur = formatTime(v.duration);
+      durationCache.set(videoSrc, dur);
+      // Set ke wrapper-nya, bukan ke img
+      wrapper.setAttribute("data-duration", dur);
+      delete wrapper.dataset.loadingDur;
+
+      // Bersihin memori
+      v.removeAttribute("src");
+      try {
+        v.load();
+      } catch (_) {}
+    };
+
+    v.onerror = () => {
+      delete wrapper.dataset.loadingDur;
+    };
+  }
+
+  function updateAllVideoDurations() {
+    // Panggil buat semua gambar yang punya data-video
+    document.querySelectorAll("img.video-thumb[data-video]").forEach((img) => {
+      loadVideoDuration(img);
+    });
+  }
+
   window.openAlbum = function (albumName) {
     albumTitle.textContent = albumName;
     albumGrid.innerHTML = "";
 
-    const items = albumData[albumName] || [];
+    // Album Favorites diisi dari daftar yang beneran di-love (bukan list statis)
+    const items =
+      albumName === "Favorites" ? getFavoriteIds() : albumData[albumName] || [];
     items.forEach((itemId) => {
-      let img;
       if (itemId.startsWith("v")) {
-        img = document.createElement("img");
-        // thumbnail video namanya t1..t7 (sama kayak di grid utama), bukan "thumbnail-v1"
+        // Bikin div wrapper buat video di album
+        const wrapper = document.createElement("div");
+        wrapper.className = "video-item-wrapper";
+
+        const img = document.createElement("img");
         img.src = `photos/t${itemId.slice(1)}.png`;
         img.setAttribute("data-video", `videos/${itemId}.mp4`);
         img.className = "photo-item video-thumb";
         img.alt = itemId;
+        img.dataset.full = new URL(img.src, document.baseURI).href;
+
+        wrapper.appendChild(img);
+        albumGrid.appendChild(wrapper);
       } else {
-        img = document.createElement("img");
+        const img = document.createElement("img");
         img.src = `photos/${itemId}.png`;
         img.className = "photo-item";
         img.alt = itemId;
+        img.dataset.full = new URL(img.src, document.baseURI).href;
+        albumGrid.appendChild(img);
       }
-      img.dataset.full = new URL(img.src, document.baseURI).href;
-      albumGrid.appendChild(img);
     });
 
     refreshAllFavoriteUI();
+    updateAllVideoDurations(); // Panggil durasi buat thumbnail di album
     albumOverlay.classList.add("open");
   };
 
@@ -553,7 +666,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let pvTimer = null;
   let pvMuted = false;
 
-  // FIX: guard biar loadeddata handler nggak play video yang udah nggak aktif
   let pvLoadToken = 0;
 
   const pvWidth = () => pvStage.offsetWidth || 430;
@@ -568,8 +680,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const currentItem = currentPhotoList[currentPhotoIndex];
     const isVid = !!(currentItem && currentItem.videoSrc);
 
-    // Video juga dapat slide gambar (poster/thumbnail) — jadi pas swipe & pas
-    // video lagi loading nggak ada layar hitam kosong; video fade-in di atasnya.
     const setImg = (el, i) => {
       const item = currentPhotoList[i];
       if (item && item.src) {
@@ -584,11 +694,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setImg(pvCur, currentPhotoIndex);
     setImg(pvNext, currentPhotoIndex + 1);
 
-    // FIX: token baru tiap ganti slide — biar event lama nggak nge-trigger play
     pvLoadToken++;
     const myToken = pvLoadToken;
 
-    // Reset video dulu
     pvVideo.pause();
     pvVideo.classList.remove("ready");
     pvVideo.removeAttribute("src");
@@ -600,10 +708,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isVid) {
       const src = pvResolveSrc(currentItem);
-      pvVideo.muted = true; // Paksa mute biar autoplay jalan
+      pvVideo.muted = true;
       pvMuted = true;
       pvMuteBtn.innerHTML = ICON_MUTE;
-      // simpan token SEBELUM src di-set, dicek di loadeddata
       pvVideo.dataset.loadToken = String(myToken);
       photoView.classList.add("has-video");
       photoView.classList.remove("paused");
@@ -625,10 +732,7 @@ document.addEventListener("DOMContentLoaded", () => {
     pvPrev.style.transform = `translate3d(${dx - step}px, 0, 0)`;
     pvCur.style.transform = `translate3d(${dx}px, 0, 0)`;
     pvNext.style.transform = `translate3d(${dx + step}px, 0, 0)`;
-    // FIX: SELALU translate video, nggak peduli display-nya apa.
-    // Visibility diatur lewat class .ready di CSS.
     pvVideo.style.transform = `translate3d(${dx}px, 0, 0)`;
-    // jaga fade-in video (opacity) tetap jalan walau transform lagi "none"
     pvVideo.style.transition =
       (animate ? pvTransition + ", " : "") + "opacity 0.2s ease";
   }
@@ -658,7 +762,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (_) {}
       pvVideo.classList.remove("ready");
     }
-    pvLoadToken++; // batalkan event video yang masih nyangkut
+    pvLoadToken++;
     pvStopFilmstrip();
     if (
       !document.getElementById("app-photos").classList.contains("open") &&
@@ -668,14 +772,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // GLOBAL EVENT LISTENER UNTUK SEMUA .photo-item
   document.addEventListener("click", (e) => {
-    // 1. PRIORITAS UTAMA: Klik foto/video di grid atau album
     const mediaElement = e.target.closest(".photo-item");
     if (mediaElement) {
       e.stopPropagation();
 
-      const container = mediaElement.parentElement;
+      // Ambil semua item dari GRID-nya (bukan parentElement, karena tiap
+      // thumbnail sekarang dibungkus wrapper -> daftar swipe cuma 1 item).
+      const container =
+        mediaElement.closest(".photos-grid") || mediaElement.parentElement;
       const allMedia = Array.from(container.querySelectorAll(".photo-item"));
 
       const allItems = allMedia.map((m) => {
@@ -699,14 +804,12 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 2. Klik ikon Photos di Home Screen
     const photosIcon = e.target.closest('img[alt="Photos"]');
     if (photosIcon && !activeApp) {
       openApp({ overlay: "app-photos" }, photosIcon);
     }
   });
 
-  // Toggle Love
   const heartBtn = document.getElementById("pvHeart");
   if (heartBtn) {
     heartBtn.addEventListener("click", (e) => {
@@ -732,7 +835,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ===== SWIPE LOGIC =====
   let pvDrag = null;
   let pvTouchId = null;
 
@@ -784,7 +886,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const d = pvDrag;
     pvDrag = null;
 
-    // Tap (nggak geser) = sembunyiin / munculin bar atas-bawah, kayak iOS
     if (d.dir === null) {
       photoView.classList.toggle("chrome-hidden");
       pvLayout(0, false);
@@ -820,7 +921,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 400);
   }
 
-  // Desktop
   photoView.addEventListener("pointerdown", (e) => {
     if (
       e.target.closest(
@@ -848,7 +948,6 @@ document.addEventListener("DOMContentLoaded", () => {
     pvEndDrag();
   });
 
-  // HP
   photoView.addEventListener(
     "touchstart",
     (e) => {
@@ -942,13 +1041,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const initThumbs = () =>
     document.querySelectorAll("#app-photos .photo-item").forEach(applyThumb);
-  // requestIdleCallback butuh object ({timeout}), bukan angka — kalau angka dia
-  // melempar TypeError dan semua kode di bawahnya (kontrol video dll) nggak jalan.
+
   if (window.requestIdleCallback) {
     window.requestIdleCallback(initThumbs, { timeout: 200 });
   } else {
     setTimeout(initThumbs, 200);
   }
+
+  // Panggil durasi buat grid utama pas pertama kali load
+  setTimeout(updateAllVideoDurations, 500);
 
   /* ===== 12. KONTROL VIDEO ===== */
   const pvPlayBtn = document.getElementById("pvPlayBtn");
@@ -983,15 +1084,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function pvSyncPlayUI() {
-    // Abaikan event dari video yang srcnya sudah dicopot (pas ganti slide),
-    // biar tombol play besar nggak kedip.
     if (!pvVideo.getAttribute("src")) return;
     const playing = scrubbing ? wasPlaying : !pvVideo.paused && !pvVideo.ended;
     photoView.classList.toggle("paused", !playing);
     pvPlayBtn.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
   }
 
-  /* --- Filmstrip: ambil frame asli dari video buat scrubber --- */
   let stripToken = 0;
 
   function pvStopFilmstrip() {
@@ -1096,7 +1194,6 @@ document.addEventListener("DOMContentLoaded", () => {
   pvVideo.addEventListener("timeupdate", pvUpdateHead);
   pvVideo.addEventListener("loadedmetadata", pvUpdateHead);
 
-  // true kalau event ini milik video yang sekarang aktif (bukan sisa slide lama)
   function pvIsActiveVideo() {
     if (pvVideo.dataset.loadToken !== String(pvLoadToken)) return false;
     const item = currentPhotoList[currentPhotoIndex];
@@ -1117,7 +1214,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const playPromise = pvVideo.play();
     if (playPromise !== undefined) {
       playPromise.catch(() => {
-        // Autoplay diblokir browser -> tampilkan tombol play besar
         photoView.classList.add("paused");
         pvPlayBtn.innerHTML = ICON_PLAY;
       });
@@ -1129,7 +1225,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   pvVideo.addEventListener("error", () => {
-    // error palsu dari src yang sengaja dicopot -> abaikan
     if (!pvVideo.getAttribute("src")) return;
     const code = pvVideo.error && pvVideo.error.code;
     console.error(
@@ -1139,7 +1234,6 @@ document.addEventListener("DOMContentLoaded", () => {
       pvVideo.currentSrc,
     );
 
-    // poster (thumbnail) tetap kelihatan, tombol play besar muncul
     pvVideo.classList.remove("ready");
     photoView.classList.add("paused");
     pvPlayBtn.innerHTML = ICON_PLAY;
@@ -1160,7 +1254,7 @@ document.addEventListener("DOMContentLoaded", () => {
     pvMuteBtn.innerHTML = pvMuted ? ICON_MUTE : ICON_VOL;
   });
   pvPlayBtn.innerHTML = ICON_PLAY;
-  pvMuteBtn.innerHTML = ICON_MUTE; // Langsung mute biar autoplay jalan
+  pvMuteBtn.innerHTML = ICON_MUTE;
   pvMuted = true;
   pvVideo.muted = true;
 

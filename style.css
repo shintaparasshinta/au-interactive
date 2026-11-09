@@ -1664,3 +1664,186 @@ img.photo-item {
   pointer-events: auto;
 }
 
+/* ===== VIDEO THUMBNAIL WRAPPER & BADGES ===== */
+.video-item-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+}
+
+.video-item-wrapper .photo-item {
+  width: 100%;
+  height: 100%;
+  border-radius: 0; /* Biar nyatu sama grid */
+}
+
+/* Ikon Play (Pojok Kanan Atas) */
+.video-item-wrapper::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>') center/12px no-repeat;
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 5;
+}
+
+/* Teks Durasi (Pojok Kiri Bawah) */
+.video-item-wrapper::after {
+  content: attr(data-duration); 
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  z-index: 5;
+  pointer-events: none;
+  /* Sembunyiin kalau durasi belum ke-load */
+  opacity: 0; 
+}
+
+/* Munculin cuma kalau ada durasinya */
+.video-item-wrapper[data-duration]:not([data-duration=""])::after {
+  opacity: 1;
+}
+
+/* Ikon Love Favorite */
+.video-item-wrapper .is-favorite::after,
+.photo-item.is-favorite::after {
+  content: "❤";
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  color: #ff3b30;
+  font-size: 16px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  z-index: 6;
+}
+
+/* Geser dikit ikon love di video biar nggak nabrak durasi */
+.video-item-wrapper .photo-item.is-favorite::after {
+  left: auto;
+  right: 6px; 
+  bottom: 6px;
+}
+
+/* ===== VIDEO THUMBNAIL WRAPPER & BADGES ===== */
+.video-item-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.video-item-wrapper .photo-item {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Ikon Play (Pojok Kanan Atas) */
+.video-item-wrapper::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>') center/12px no-repeat;
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 5;
+}
+
+/* Teks Durasi (Pojok Kiri Bawah) */
+.video-item-wrapper::after {
+  content: attr(data-duration); 
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0; 
+}
+
+.video-item-wrapper[data-duration]:not([data-duration=""])::after {
+  opacity: 1;
+}
+
+/* Ikon Love Favorite (Hati Merah) */
+.photo-item.is-favorite::after,
+.video-item-wrapper .photo-item.is-favorite::after {
+  content: "❤";
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  color: #ff3b30;
+  font-size: 16px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  z-index: 10; /* Paling atas biar nggak ketutup durasi */
+  pointer-events: none;
+}
+
+/* Geser ikon love di video ke kanan biar nggak nabrak teks durasi */
+.video-item-wrapper .photo-item.is-favorite::after {
+  left: auto;
+  right: 6px;
+}
+/* ===== v20 — WRAPPER FOTO + IKON LOVE (elemen sungguhan, bukan ::after di <img>) ===== */
+.photo-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  cursor: pointer;
+}
+.photo-wrap .photo-item {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.fav-heart {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  display: none;
+  color: #ff3b30;
+  font-size: 16px;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  z-index: 10;
+  pointer-events: none;
+}
+.is-favorite > .fav-heart {
+  display: block;
+}
+/* di video: durasi ada di kiri bawah, jadi love di kanan bawah */
+.video-item-wrapper > .fav-heart {
+  left: auto;
+  right: 6px;
+}
+
+/* badge play di video jangan nelen klik */
+.video-item-wrapper::before {
+  pointer-events: none;
+}
