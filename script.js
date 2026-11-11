@@ -285,43 +285,42 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ===== 7. APP OVERLAY + NAVIGASI GLOBAL (bottom bar / swipe-up / close) =====
-     Satu controller untuk SEMUA app. App baru cukup didaftarkan di APPS
-     (atau lewat atribut data-open-app="id-overlay" di ikonnya, atau
-     window.registerApp({...})) dan otomatis dapat perilaku nav yang sama. */
+  /* ===== 7. APP OVERLAY + NAVIGASI GLOBAL (bottom bar / swipe-up / close) ===== */
   const homeGesture = document.getElementById("homeGesture");
 
   const NAV = {
-    CORE: 36, // strip inti di tepi bawah (px desain) - selalu mengklaim sentuhan
-    BAND: 110, // area aktif gesture di atas tepi bawah (px desain) - dulu cuma 30
-    INTENT: 8, // gerak vertikal minimum sebelum gesture diklaim
-    CANCEL_X: 16, // gerak horizontal/ke bawah yang membatalkan klaim
-    CLOSE_DIST: 80, // jarak swipe untuk menutup app
-    CLOSE_VEL: 0.4, // atau kecepatan flick (px/ms)
-    EDGE: 22, // lebar area tepi kiri/kanan (px desain, ~20px di layar) untuk back gesture
-    EDGE_DIST: 80, // jarak usap tepi untuk kembali
-    EDGE_VEL: 0.45, // atau flick (px/ms)
+    CORE: 36,
+    BAND: 110,
+    INTENT: 8,
+    CANCEL_X: 16,
+    CLOSE_DIST: 80,
+    CLOSE_VEL: 0.4,
+    EDGE: 22,
+    EDGE_DIST: 80,
+    EDGE_VEL: 0.45,
     EDGE_FLICK_MIN: 30,
-    SIDE_DIST: 110, // jarak swipe kiri/kanan untuk menutup app
-    SIDE_VEL: 0.5, // atau flick horizontal (px/ms)
+    SIDE_DIST: 110,
+    SIDE_VEL: 0.5,
     SIDE_FLICK_MIN: 40,
-    FLICK_MIN: 30, // flick cepat hanya menutup jika sudah bergeser sejauh ini (anti sentil tak sengaja)
+    FLICK_MIN: 30,
   };
   root.style.setProperty("--nav-core", NAV.CORE + "px");
   root.style.setProperty("--nav-band", NAV.BAND + "px");
 
-  // Elemen yang punya gesture horizontal sendiri tidak boleh diklaim nav bawah.
   const NAV_IGNORE = ".pv-strip, [data-nav-ignore]";
 
   const APPS = [
     {
       icon: 'img[alt="Photos"]',
       overlay: "app-photos",
-      // sub-layar milik app ikut ditutup saat app keluar lewat swipe
       onClose: () => {
         if (window.closePhotoView) window.closePhotoView();
         if (window.closeAlbum) window.closeAlbum();
       },
+    },
+    {
+      icon: 'img[alt="Instagram"]',
+      overlay: "app-instagram",
     },
   ];
 
@@ -342,7 +341,6 @@ document.addEventListener("DOMContentLoaded", () => {
     `translate3d(${o.dx}px, ${o.dy}px, 0) scale(${o.s})`;
   const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-  // Semua layar app yang sedang terbuka (app utama + album + foto fullscreen, dst.)
   function appLayers() {
     if (!activeApp) return [];
     const others = Array.from(
@@ -380,7 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function closeApp(opts) {
-    const dir = opts && typeof opts.dir === "number" ? opts.dir : 0; // -1 kiri, 1 kanan, 0 = swipe-up
+    const dir = opts && typeof opts.dir === "number" ? opts.dir : 0;
     if (!activeApp) return;
     const { iconEl, mode, app } = activeApp;
     const layers = appLayers();
@@ -389,14 +387,12 @@ document.addEventListener("DOMContentLoaded", () => {
     setNavHot(false);
     appClosing = true;
 
-    // hentikan video agar suara tidak lanjut selama animasi keluar
     const pv = document.getElementById("pvVideo");
     if (pv) pv.pause();
 
     const o = iconOrigin(iconEl);
     layers.forEach((l) => {
       if (dir) {
-        // keluar menyamping searah swipe
         l.style.transition = `transform 0.38s ${EASE}, opacity 0.3s ease 0.05s`;
         l.style.transform = `translate3d(${dir * 480}px, 0, 0) scale(0.9)`;
         l.style.opacity = "0";
@@ -421,7 +417,7 @@ document.addEventListener("DOMContentLoaded", () => {
       appClosing = false;
     }, 480);
   }
-  window.closeActiveApp = closeApp; // bisa dipanggil tombol close / modul app lain
+  window.closeActiveApp = closeApp;
 
   function bindAppIcon(app, iconEl) {
     const icon = iconEl || document.querySelector(app.icon);
@@ -492,8 +488,8 @@ document.addEventListener("DOMContentLoaded", () => {
       vx: 0,
       d: 0,
       dx: 0,
-      mode: null, // "v" = swipe-up, "h" = swipe kiri/kanan
-      edgeStart: !!edgeSide(x) && !!backTarget(), // sentuhan tepi dimiliki gesture back
+      mode: null,
+      edgeStart: !!edgeSide(x) && !!backTarget(),
       claimed: false,
     };
     setNavHot(true);
@@ -501,18 +497,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function navMove(id, x, y, evt) {
     if (!navG || navG.id !== id || !activeApp) return;
-    const dy = navG.sy - y; // positif = ke atas
+    const dy = navG.sy - y;
     const dx = x - navG.sx;
 
     if (!navG.claimed) {
       if (dy > NAV.INTENT && dy > Math.abs(dx) * 0.8) {
-        navG.claimed = true; // niat swipe-up terdeteksi -> project yang menang
+        navG.claimed = true;
         navG.mode = "v";
-      } else if (!navG.edgeStart && Math.abs(dx) > NAV.INTENT * 1.5 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-        navG.claimed = true; // niat swipe kiri/kanan di bar bawah
+      } else if (
+        !navG.edgeStart &&
+        Math.abs(dx) > NAV.INTENT * 1.5 &&
+        Math.abs(dx) > Math.abs(dy) * 1.2
+      ) {
+        navG.claimed = true;
         navG.mode = "h";
       } else if (dy < -NAV.CANCEL_X) {
-        navG = null; // geser ke bawah: lepas, biarkan tap/scroll normal
+        navG = null;
         setNavHot(false);
         return;
       } else {
@@ -523,7 +523,6 @@ document.addEventListener("DOMContentLoaded", () => {
       navG.lastT = performance.now();
     }
 
-    // Cegah scroll / pull-to-refresh / back-swipe browser
     if (evt && evt.cancelable) evt.preventDefault();
 
     const now = performance.now();
@@ -557,11 +556,11 @@ document.addEventListener("DOMContentLoaded", () => {
       else springBack();
       return;
     }
-    if (g.d > NAV.CLOSE_DIST || (g.v > NAV.CLOSE_VEL && g.d > NAV.FLICK_MIN)) closeApp();
+    if (g.d > NAV.CLOSE_DIST || (g.v > NAV.CLOSE_VEL && g.d > NAV.FLICK_MIN))
+      closeApp();
     else springBack();
   }
 
-  // --- Touch ---
   frame.addEventListener(
     "touchstart",
     (e) => {
@@ -583,7 +582,7 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       if (t) navMove(navG.id, t.clientX, t.clientY, e);
     },
-    { passive: false }, // wajib non-passive agar preventDefault berfungsi
+    { passive: false },
   );
   const touchDone = (e) => {
     if (!navG || navG.type !== "touch") return;
@@ -595,7 +594,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("touchend", touchDone, { passive: true });
   document.addEventListener("touchcancel", touchDone, { passive: true });
 
-  // --- Mouse (desktop) + hover ---
   frame.addEventListener(
     "pointerdown",
     (e) => {
@@ -626,27 +624,17 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (!navG) setNavHot(false);
   });
 
-  // Long-press di area bawah (Android) jangan memunculkan menu sistem
   frame.addEventListener("contextmenu", (e) => {
     if (activeApp && inNavBand(e.clientY)) e.preventDefault();
   });
 
-  /* ===== 7b. EDGE SWIPE BACK GLOBAL (kembali bertahap, level demi level) =====
-     Usap dari tepi kiri/kanan ke arah tengah:
-       Level 1 (sub-view: album, preview, modal, detail...) -> tutup sub-view teratas saja
-       Level 2 (halaman utama app)                          -> keluar app (sub-view selalu ditutup dulu).
-                                                               Keluar app juga bisa lewat bottom bar
-       Passcode                                             -> kembali ke lock screen
-     Sub-view baru otomatis terdeteksi jika berupa .app-overlay dan punya tombol
-     [data-back] / .album-back / .pv-back. Untuk modal biasa pakai
-     window.registerBack(elemen, fungsiTutup). */
+  /* ===== 7b. EDGE SWIPE BACK GLOBAL ===== */
   const backRegistry = [];
   window.registerBack = (el, close, isOpen) =>
     backRegistry.push({ el, close, isOpen });
 
   const zOf = (el) => parseInt(getComputedStyle(el).zIndex, 10) || 0;
 
-  // Apa yang akan ditutup oleh "back" saat ini? (null = tidak ada, biarkan normal)
   function backTarget() {
     if (appClosing) return null;
     if (activeApp) {
@@ -665,7 +653,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function performBack(t) {
     if (!t) return;
     if (t.kind === "passcode") return closePasscode();
-    if (t.kind === "app-root") return closeApp(); // halaman utama: keluar app
+    if (t.kind === "app-root") return closeApp();
     const reg = backRegistry.find((r) => r.el === t.el);
     if (reg && reg.close) return reg.close();
     const btn = t.el.querySelector("[data-back], .album-back, .pv-back");
@@ -674,7 +662,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   window.goBack = () => performBack(backTarget());
 
-  // Sisi tepi (l/r) tempat sentuhan dimulai, dengan toleransi sedikit di luar bingkai
   function edgeSide(x) {
     const r = frame.getBoundingClientRect();
     const left = Math.max(r.left, 0);
@@ -685,7 +672,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return null;
   }
 
-  // Indikator chevron saat usap dari tepi
   const edgeHint = document.createElement("div");
   edgeHint.className = "edge-hint";
   edgeHint.innerHTML =
@@ -693,7 +679,7 @@ document.addEventListener("DOMContentLoaded", () => {
   frame.appendChild(edgeHint);
 
   let edgeG = null;
-  let edgeClaimedAt = -1e9; // kapan gesture tepi terakhir aktif (untuk meredam back ganda dari OS)
+  let edgeClaimedAt = -1e9;
 
   function setEdgeHint(side, d, y, show) {
     const fr = frame.getBoundingClientRect();
@@ -723,7 +709,6 @@ document.addEventListener("DOMContentLoaded", () => {
       d: 0,
       claimed: false,
     };
-    // Sentuhan tepi milik gesture back: jangan bocor ke gesture lain (mis. geser foto)
     if (evt && evt.stopPropagation) evt.stopPropagation();
   }
 
@@ -735,7 +720,6 @@ document.addEventListener("DOMContentLoaded", () => {
       el.style.transform = `translate3d(${sgn * g.d}px, 0, 0)`;
       el.style.boxShadow = `${-sgn * 10}px 0 40px rgba(0,0,0,${0.35 * clamp(g.d / 200, 0, 1)})`;
     } else if (g.target.kind === "app-root") {
-      // halaman utama app ikut tergeser mengikuti jari -> melepas di atas ambang = keluar app
       const el = activeApp.ov;
       el.style.transition = "none";
       el.style.transform = `translate3d(${sgn * g.d}px, 0, 0)`;
@@ -747,7 +731,12 @@ document.addEventListener("DOMContentLoaded", () => {
     setEdgeHint(g.side, 0, g.sy, false);
     const sgn = g.side === "l" ? 1 : -1;
     const t = g.target;
-    const el = t.kind === "sub" ? t.el : t.kind === "app-root" && activeApp ? activeApp.ov : null;
+    const el =
+      t.kind === "sub"
+        ? t.el
+        : t.kind === "app-root" && activeApp
+          ? activeApp.ov
+          : null;
 
     if (commit && t.kind === "sub") {
       el.style.transition = `transform 0.26s ${EASE}, opacity 0.22s ease 0.04s`;
@@ -762,7 +751,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     if (commit && t.kind === "app-root" && activeApp) {
-      closeApp({ dir: sgn }); // keluar menyamping searah usapan
+      closeApp({ dir: sgn });
       return;
     }
     if (commit && t.kind === "passcode") {
@@ -774,7 +763,8 @@ document.addEventListener("DOMContentLoaded", () => {
       el.style.transform = "translate3d(0, 0, 0)";
       el.style.boxShadow = "none";
       setTimeout(() => {
-        if (el.classList.contains("open") && !edgeG && !navG) el.style.cssText = "";
+        if (el.classList.contains("open") && !edgeG && !navG)
+          el.style.cssText = "";
       }, 380);
     }
   }
@@ -783,35 +773,35 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!edgeG || edgeG.id !== id) return;
     const g = edgeG;
     const dxRaw = x - g.sx;
-    const inward = g.side === "l" ? dxRaw : -dxRaw; // positif = menuju tengah
+    const inward = g.side === "l" ? dxRaw : -dxRaw;
     const dy = y - g.sy;
 
     if (!g.claimed) {
       if (navG && navG.claimed) {
-        edgeG = null; // swipe-up bottom bar sudah terklaim lebih dulu
+        edgeG = null;
         return;
       }
       if (inward > NAV.INTENT * 1.5 && inward > Math.abs(dy) * 1.2) {
         g.claimed = true;
         edgeClaimedAt = performance.now();
         if (navG && !navG.claimed) {
-          navG = null; // tepi menang untuk gerak horizontal ke tengah
+          navG = null;
           setNavHot(false);
         }
         g.lastX = x;
         g.lastT = performance.now();
       } else if (Math.abs(dy) > NAV.CANCEL_X && Math.abs(dy) > inward) {
-        edgeG = null; // dominan vertikal: biarkan scroll / swipe-up bottom bar
+        edgeG = null;
         return;
       } else if (inward < -NAV.CANCEL_X) {
-        edgeG = null; // menjauhi tengah
+        edgeG = null;
         return;
       } else {
         return;
       }
     }
 
-    if (evt && evt.cancelable) evt.preventDefault(); // blokir back bawaan browser/OS
+    if (evt && evt.cancelable) evt.preventDefault();
 
     const now = performance.now();
     const dt = now - g.lastT;
@@ -834,7 +824,6 @@ document.addEventListener("DOMContentLoaded", () => {
     edgeRelease(g, commit);
   }
 
-  // --- Touch ---
   frame.addEventListener(
     "touchstart",
     (e) => {
@@ -851,20 +840,23 @@ document.addEventListener("DOMContentLoaded", () => {
     "touchmove",
     (e) => {
       if (!edgeG || edgeG.type !== "touch") return;
-      const t = Array.from(e.touches).find((x) => "t" + x.identifier === edgeG.id);
+      const t = Array.from(e.touches).find(
+        (x) => "t" + x.identifier === edgeG.id,
+      );
       if (t) edgeMove(edgeG.id, t.clientX, t.clientY, e);
     },
     { passive: false },
   );
   const edgeTouchDone = (e) => {
     if (!edgeG || edgeG.type !== "touch") return;
-    const t = Array.from(e.changedTouches).find((x) => "t" + x.identifier === edgeG.id);
+    const t = Array.from(e.changedTouches).find(
+      (x) => "t" + x.identifier === edgeG.id,
+    );
     if (t) edgeEnd(edgeG.id);
   };
   document.addEventListener("touchend", edgeTouchDone, { passive: true });
   document.addEventListener("touchcancel", edgeTouchDone, { passive: true });
 
-  // --- Mouse (desktop) ---
   frame.addEventListener(
     "pointerdown",
     (e) => {
@@ -886,11 +878,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (edgeG) edgeEnd(edgeG.id);
   });
 
-  /* ---- Back bawaan browser/OS (tombol back, gesture back Android, PWA) ----
-     Entri history "penjaga" dipasang saat interaksi pertama (Chrome mengabaikan
-     entri yang dibuat tanpa interaksi user). Saat back terpicu dan masih ada
-     level di dalam project, kembali satu level saja dan project tidak ditinggalkan.
-     Jika sudah tidak ada level (lock/home), back dibiarkan keluar seperti biasa. */
   let guardArmed = false;
   function armBackGuard() {
     if (guardArmed) return;
@@ -900,15 +887,17 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (_) {}
   }
   ["pointerdown", "touchstart", "keydown"].forEach((ev) =>
-    window.addEventListener(ev, armBackGuard, { once: true, capture: true, passive: true }),
+    window.addEventListener(ev, armBackGuard, {
+      once: true,
+      capture: true,
+      passive: true,
+    }),
   );
   window.addEventListener("popstate", () => {
     if (!guardArmed) return;
-    // Usapan tepi sudah ditangani gesture project. Di HP, OS sering ikut menembakkan
-    // "back" untuk usapan yang sama -> abaikan agar satu usapan = satu level.
     if ((edgeG && edgeG.claimed) || performance.now() - edgeClaimedAt < 900) {
       try {
-        history.pushState({ navGuard: true }, ""); // pasang lagi penjaganya
+        history.pushState({ navGuard: true }, "");
       } catch (_) {}
       return;
     }
@@ -916,15 +905,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (t) {
       performBack(t);
       try {
-        history.pushState({ navGuard: true }, ""); // pasang lagi penjaganya
+        history.pushState({ navGuard: true }, "");
       } catch (_) {}
     } else {
-      guardArmed = false; // tidak ada level internal -> lanjutkan keluar seperti biasa
+      guardArmed = false;
       history.back();
     }
   });
 
-  // Tombol back/close memakai respon hover/active yang sama dengan bottom bar
   document
     .querySelectorAll(".close-btn, .album-back, .pv-back")
     .forEach((el) => el.classList.add("nav-btn"));
@@ -932,17 +920,22 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     const t = backTarget();
-    if (t && t.kind !== "app-root") performBack(t); // kembali satu level dulu
-    else if (activeApp) closeApp(); // di halaman utama app: keluar app
+    if (t && t.kind !== "app-root") performBack(t);
+    else if (activeApp) closeApp();
   });
 
   /* ===== 8. GLOBAL FAVORITE LOGIC ===== */
-  let favoritePhotos = ["2", "3", "6", "8", "11", "13", "14", "17", "20", "23", "24", "v7"];
+  let favoritePhotos = [
+    "2", "3", "6", "8", "11", "13", "14", "17", "20", "23", "24", "v7"
+  ];
 
-  // Thumbnail video (photos/t1.png) dipetakan ke id video "v1"
   function favId(src) {
     if (!src) return "";
-    const name = src.split("?")[0].split("/").pop().replace(/\.(png|jpg)$/i, "");
+    const name = src
+      .split("?")[0]
+      .split("/")
+      .pop()
+      .replace(/\.(png|jpg)$/i, "");
     const m = name.match(/^t(\d+)$/);
     return m ? "v" + m[1] : name;
   }
@@ -952,8 +945,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return favoritePhotos.includes(favId(src));
   }
 
-  // <img> nggak bisa punya ::after, jadi tiap thumbnail dibungkus wrapper
-  // dan ikon love-nya berupa elemen <span> sungguhan di dalam wrapper.
   const HEART_SVG =
     '<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
 
@@ -977,7 +968,27 @@ document.addEventListener("DOMContentLoaded", () => {
     return w;
   }
 
-  // urut sesuai urutan di Recents (foto & video tercampur)
+  // ===== 9. INTERAKSI ALBUM PHOTOS =====
+  const albumOverlay = document.getElementById("app-photos-album");
+  const albumTitle = document.getElementById("albumTitle");
+  const albumGrid = document.getElementById("albumGrid");
+
+  const albumData = {
+    Recents: [
+      "1","2","3","4","5","6","7","8","9","10","11","12","13","14",
+      "v1","v2","15","16","17","18","19","v3","20","21","v4","22","v5","v6","23","24","25","v7",
+    ],
+    Favorites: ["2", "3", "6", "8", "11", "13", "14", "17", "20", "23", "24", "v7"],
+    "4boiz": [
+      "13","14","v1","v2","16","19","v3","20","21","v4","22","v5","v6","23","24","25","v7",
+    ],
+    Videos: ["v1", "v2", "v3", "v4", "v5", "v6", "v7"],
+    Selfies: ["2", "5", "10", "13", "15", "18", "20", "22", "24"],
+    Screenshots: ["3", "6", "9", "12", "15"],
+    Today: ["1", "2", "3", "4", "5", "6"],
+    Yesterday: ["7", "8", "9", "10"],
+  };
+
   const getFavoriteIds = () => {
     const order = (id) => {
       const i = albumData.Recents.indexOf(id);
@@ -992,7 +1003,6 @@ document.addEventListener("DOMContentLoaded", () => {
       w.classList.toggle("is-favorite", isFavorite(img.dataset.full || img.src));
     });
 
-    // Jumlah di kartu album "Favorites" ikut update
     const favCount = document.querySelector(
       '.ph-sec-item img[alt="Favorites"] + .ph-sec-label span',
     );
@@ -1008,73 +1018,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   }
-
-  /* ===== 9. INTERAKSI ALBUM PHOTOS ===== */
-  const albumOverlay = document.getElementById("app-photos-album");
-  const albumTitle = document.getElementById("albumTitle");
-  const albumGrid = document.getElementById("albumGrid");
-
-  const albumData = {
-    Recents: [
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "10",
-      "11",
-      "12",
-      "13",
-      "14",
-      "v1",
-      "v2",
-      "15",
-      "16",
-      "17",
-      "18",
-      "19",
-      "v3",
-      "20",
-      "21",
-      "v4",
-      "22",
-      "v5",
-      "v6",
-      "23",
-      "24",
-      "25",
-      "v7",
-    ],
-    Favorites: ["2", "3", "6", "8", "11", "13", "14", "17", "20", "23", "24", "v7"],
-    "4boiz": [
-      "13",
-      "14",
-      "v1",
-      "v2",
-      "16",
-      "19",
-      "v3",
-      "20",
-      "21",
-      "v4",
-      "22",
-      "v5",
-      "v6",
-      "23",
-      "24",
-      "25",
-      "v7",
-    ],
-    Videos: ["v1", "v2", "v3", "v4", "v5", "v6", "v7"],
-    Selfies: ["2", "5", "10", "13", "15", "18", "20", "22", "24"],
-    Screenshots: ["3", "6", "9", "12", "15"],
-    Today: ["1", "2", "3", "4", "5", "6"],
-    Yesterday: ["7", "8", "9", "10"],
-  };
 
   /* ===== 9.5 LOGIKA DURASI VIDEO THUMBNAIL ===== */
   const durationCache = new Map();
@@ -1092,17 +1035,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const videoSrc = imgElement.getAttribute("data-video");
     if (!videoSrc || !wrapper) return;
 
-    // 1. Cek di cache dulu
     if (durationCache.has(videoSrc)) {
       wrapper.setAttribute("data-duration", durationCache.get(videoSrc));
       return;
     }
 
-    // 2. Kalau ada loading yang lagi jalan, tungguin aja
     if (wrapper.dataset.loadingDur) return;
     wrapper.dataset.loadingDur = "true";
 
-    // 3. Bikin elemen video virtual buat baca metadata
     const v = document.createElement("video");
     v.preload = "metadata";
     v.src = videoSrc;
@@ -1110,15 +1050,11 @@ document.addEventListener("DOMContentLoaded", () => {
     v.onloadedmetadata = () => {
       const dur = formatTime(v.duration);
       durationCache.set(videoSrc, dur);
-      // Set ke wrapper-nya, bukan ke img
       wrapper.setAttribute("data-duration", dur);
       delete wrapper.dataset.loadingDur;
 
-      // Bersihin memori
       v.removeAttribute("src");
-      try {
-        v.load();
-      } catch (_) {}
+      try { v.load(); } catch (_) {}
     };
 
     v.onerror = () => {
@@ -1127,7 +1063,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateAllVideoDurations() {
-    // Panggil buat semua gambar yang punya data-video
     document.querySelectorAll("img.video-thumb[data-video]").forEach((img) => {
       loadVideoDuration(img);
     });
@@ -1137,12 +1072,10 @@ document.addEventListener("DOMContentLoaded", () => {
     albumTitle.textContent = albumName;
     albumGrid.innerHTML = "";
 
-    // Album Favorites diisi dari daftar yang beneran di-love (bukan list statis)
     const items =
       albumName === "Favorites" ? getFavoriteIds() : albumData[albumName] || [];
     items.forEach((itemId) => {
       if (itemId.startsWith("v")) {
-        // Bikin div wrapper buat video di album
         const wrapper = document.createElement("div");
         wrapper.className = "video-item-wrapper";
 
@@ -1166,7 +1099,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     refreshAllFavoriteUI();
-    updateAllVideoDurations(); // Panggil durasi buat thumbnail di album
+    updateAllVideoDurations();
     albumOverlay.classList.add("open");
   };
 
@@ -1236,9 +1169,7 @@ document.addEventListener("DOMContentLoaded", () => {
     pvVideo.pause();
     pvVideo.classList.remove("ready");
     pvVideo.removeAttribute("src");
-    try {
-      pvVideo.load();
-    } catch (_) {}
+    try { pvVideo.load(); } catch (_) {}
     pvStopFilmstrip();
     pvUpdateHead();
 
@@ -1252,9 +1183,7 @@ document.addEventListener("DOMContentLoaded", () => {
       photoView.classList.remove("paused");
       pvPlayBtn.innerHTML = ICON_PLAY;
       pvVideo.src = src;
-      try {
-        pvVideo.load();
-      } catch (_) {}
+      try { pvVideo.load(); } catch (_) {}
     } else {
       photoView.classList.remove("has-video", "paused");
     }
@@ -1293,9 +1222,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pvVideo) {
       pvVideo.pause();
       pvVideo.removeAttribute("src");
-      try {
-        pvVideo.load();
-      } catch (_) {}
+      try { pvVideo.load(); } catch (_) {}
       pvVideo.classList.remove("ready");
     }
     pvLoadToken++;
@@ -1313,8 +1240,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (mediaElement) {
       e.stopPropagation();
 
-      // Ambil semua item dari GRID-nya (bukan parentElement, karena tiap
-      // thumbnail sekarang dibungkus wrapper -> daftar swipe cuma 1 item).
       const container =
         mediaElement.closest(".photos-grid") || mediaElement.parentElement;
       const allMedia = Array.from(container.querySelectorAll(".photo-item"));
@@ -1579,7 +1504,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(initThumbs, 200);
   }
 
-  // Panggil durasi buat grid utama pas pertama kali load
   setTimeout(updateAllVideoDurations, 500);
 
   /* ===== 12. KONTROL VIDEO ===== */
@@ -1640,9 +1564,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const cleanup = () => {
       v.removeAttribute("src");
-      try {
-        v.load();
-      } catch (_) {}
+      try { v.load(); } catch (_) {}
     };
 
     const waitSeek = () =>
@@ -1738,10 +1660,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   pvVideo.addEventListener("loadeddata", () => {
     if (!pvIsActiveVideo()) return;
-
     pvVideo.classList.add("ready");
     pvBuildFilmstrip(pvVideo.src);
-
     const playPromise = pvVideo.play();
     if (playPromise !== undefined) {
       playPromise.catch(() => {
@@ -1758,13 +1678,7 @@ document.addEventListener("DOMContentLoaded", () => {
   pvVideo.addEventListener("error", () => {
     if (!pvVideo.getAttribute("src")) return;
     const code = pvVideo.error && pvVideo.error.code;
-    console.error(
-      "Video Error Code:",
-      code,
-      "(4 = file nggak ketemu / codec nggak didukung) src:",
-      pvVideo.currentSrc,
-    );
-
+    console.error("Video Error Code:", code, "src:", pvVideo.currentSrc);
     pvVideo.classList.remove("ready");
     photoView.classList.add("paused");
     pvPlayBtn.innerHTML = ICON_PLAY;
