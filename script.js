@@ -285,12 +285,49 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ===== 7. APP OVERLAY: buka dari ikon, keluar swipe up ===== */
+  /* ===== 7. APP OVERLAY + NAVIGASI GLOBAL (bottom bar / swipe-up / close) =====
+     Satu controller untuk SEMUA app. App baru cukup didaftarkan di APPS
+     (atau lewat atribut data-open-app="id-overlay" di ikonnya, atau
+     window.registerApp({...})) dan otomatis dapat perilaku nav yang sama. */
   const homeGesture = document.getElementById("homeGesture");
 
-  const APPS = [{ icon: 'img[alt="Photos"]', overlay: "app-photos" }];
+  const NAV = {
+    CORE: 36, // strip inti di tepi bawah (px desain) - selalu mengklaim sentuhan
+    BAND: 110, // area aktif gesture di atas tepi bawah (px desain) - dulu cuma 30
+    INTENT: 8, // gerak vertikal minimum sebelum gesture diklaim
+    CANCEL_X: 16, // gerak horizontal/ke bawah yang membatalkan klaim
+    CLOSE_DIST: 80, // jarak swipe untuk menutup app
+    CLOSE_VEL: 0.4, // atau kecepatan flick (px/ms)
+    EDGE: 22, // lebar area tepi kiri/kanan (px desain, ~20px di layar) untuk back gesture
+    EDGE_DIST: 80, // jarak usap tepi untuk kembali
+    EDGE_VEL: 0.45, // atau flick (px/ms)
+    EDGE_FLICK_MIN: 30,
+    SIDE_DIST: 110, // jarak swipe kiri/kanan untuk menutup app
+    SIDE_VEL: 0.5, // atau flick horizontal (px/ms)
+    SIDE_FLICK_MIN: 40,
+    FLICK_MIN: 30, // flick cepat hanya menutup jika sudah bergeser sejauh ini (anti sentil tak sengaja)
+  };
+  root.style.setProperty("--nav-core", NAV.CORE + "px");
+  root.style.setProperty("--nav-band", NAV.BAND + "px");
+
+  // Elemen yang punya gesture horizontal sendiri tidak boleh diklaim nav bawah.
+  const NAV_IGNORE = ".pv-strip, [data-nav-ignore]";
+
+  const APPS = [
+    {
+      icon: 'img[alt="Photos"]',
+      overlay: "app-photos",
+      // sub-layar milik app ikut ditutup saat app keluar lewat swipe
+      onClose: () => {
+        if (window.closePhotoView) window.closePhotoView();
+        if (window.closeAlbum) window.closeAlbum();
+      },
+    },
+  ];
 
   let activeApp = null;
+  let appClosing = false;
+  let navG = null;
 
   function iconOrigin(iconEl) {
     const fr = frame.getBoundingClientRect();
@@ -305,13 +342,26 @@ document.addEventListener("DOMContentLoaded", () => {
     `translate3d(${o.dx}px, ${o.dy}px, 0) scale(${o.s})`;
   const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
+  // Semua layar app yang sedang terbuka (app utama + album + foto fullscreen, dst.)
+  function appLayers() {
+    if (!activeApp) return [];
+    const others = Array.from(
+      frame.querySelectorAll(".app-overlay.open"),
+    ).filter((el) => el !== activeApp.ov);
+    return [activeApp.ov, ...others];
+  }
+
+  function setNavHot(on) {
+    frame.classList.toggle("nav-hot", !!on);
+  }
+
   function openApp(app, iconEl) {
-    if (activeApp) return;
+    if (activeApp || appClosing) return;
     const ov = document.getElementById(app.overlay);
     if (!ov) return;
 
     const o = iconOrigin(iconEl);
-    activeApp = { ov, iconEl, mode: app.overlay + "-mode" };
+    activeApp = { ov, iconEl, app, mode: app.overlay + "-mode" };
 
     ov.style.transition = "none";
     ov.style.transform = iconTransform(o);
@@ -329,103 +379,584 @@ document.addEventListener("DOMContentLoaded", () => {
     frame.classList.add("app-open");
   }
 
-  function closeApp() {
+  function closeApp(opts) {
+    const dir = opts && typeof opts.dir === "number" ? opts.dir : 0; // -1 kiri, 1 kanan, 0 = swipe-up
     if (!activeApp) return;
-    const { ov, iconEl, mode } = activeApp;
+    const { iconEl, mode, app } = activeApp;
+    const layers = appLayers();
     activeApp = null;
+    navG = null;
+    setNavHot(false);
+    appClosing = true;
+
+    // hentikan video agar suara tidak lanjut selama animasi keluar
+    const pv = document.getElementById("pvVideo");
+    if (pv) pv.pause();
 
     const o = iconOrigin(iconEl);
-    ov.style.transition = `transform 0.45s ${EASE}, opacity 0.3s ease 0.1s, border-radius 0.45s ease, box-shadow 0.3s ease`;
-    ov.style.transform = iconTransform(o);
-    ov.style.opacity = "0";
-    ov.style.borderRadius = 15 / o.s + "px";
-    ov.style.boxShadow = "none";
+    layers.forEach((l) => {
+      if (dir) {
+        // keluar menyamping searah swipe
+        l.style.transition = `transform 0.38s ${EASE}, opacity 0.3s ease 0.05s`;
+        l.style.transform = `translate3d(${dir * 480}px, 0, 0) scale(0.9)`;
+        l.style.opacity = "0";
+        return;
+      }
+      l.style.transition = `transform 0.45s ${EASE}, opacity 0.3s ease 0.1s, border-radius 0.45s ease, box-shadow 0.3s ease`;
+      l.style.transform = iconTransform(o);
+      l.style.opacity = "0";
+      l.style.borderRadius = 15 / o.s + "px";
+      l.style.boxShadow = "none";
+    });
 
     root.classList.remove(mode);
     frame.classList.remove("app-open");
 
     setTimeout(() => {
-      ov.classList.remove("open");
-      ov.style.cssText = "";
+      if (app.onClose) app.onClose();
+      layers.forEach((l) => {
+        l.classList.remove("open");
+        l.style.cssText = "";
+      });
+      appClosing = false;
     }, 480);
   }
+  window.closeActiveApp = closeApp; // bisa dipanggil tombol close / modul app lain
 
-  APPS.forEach((app) => {
-    const icon = document.querySelector(app.icon);
+  function bindAppIcon(app, iconEl) {
+    const icon = iconEl || document.querySelector(app.icon);
     if (icon) icon.addEventListener("click", () => openApp(app, icon));
+  }
+  APPS.forEach((app) => bindAppIcon(app));
+  document.querySelectorAll("[data-open-app]").forEach((el) => {
+    bindAppIcon({ overlay: el.dataset.openApp }, el);
   });
+  window.registerApp = (app) => {
+    APPS.push(app);
+    bindAppIcon(app);
+  };
 
-  let appDrag = null;
+  /* ---- Gesture bottom bar (sentuhan + mouse), berlaku untuk semua app ---- */
+  const bottomDist = (clientY) => {
+    const r = frame.getBoundingClientRect();
+    return (Math.min(r.bottom, window.innerHeight) - clientY) / frameScale;
+  };
+  const inNavBand = (clientY) => {
+    const b = bottomDist(clientY);
+    return b <= NAV.BAND && b >= -40;
+  };
 
-  homeGesture.addEventListener("pointerdown", (e) => {
-    if (!activeApp) return;
-    homeGesture.setPointerCapture(e.pointerId);
-    appDrag = {
-      startY: e.clientY,
-      lastY: e.clientY,
-      lastT: performance.now(),
-      v: 0,
-      d: 0,
-    };
-    activeApp.ov.style.transition = "none";
-  });
-
-  homeGesture.addEventListener("pointermove", (e) => {
-    if (!appDrag || !activeApp) return;
-    const now = performance.now();
-    const dt = now - appDrag.lastT;
-    if (dt > 0) appDrag.v = (appDrag.lastY - e.clientY) / dt;
-    appDrag.lastY = e.clientY;
-    appDrag.lastT = now;
-
-    const d = Math.max(0, (appDrag.startY - e.clientY) / frameScale);
-    appDrag.d = d;
+  function applyDrag(d) {
     const p = clamp(d / 320, 0, 1);
+    appLayers().forEach((ov) => {
+      ov.style.transition = "none";
+      ov.style.transform = `translate3d(0, ${-d * 0.35}px, 0) scale(${1 - p * 0.5})`;
+      ov.style.borderRadius = 54 + p * 50 + "px";
+      ov.style.boxShadow = `0 12px 40px rgba(0, 0, 0, ${0.35 * p})`;
+    });
+  }
 
-    const ov = activeApp.ov;
-    ov.style.transform = `translate3d(0, ${-d * 0.35}px, 0) scale(${1 - p * 0.5})`;
-    ov.style.borderRadius = 54 + p * 50 + "px";
-    ov.style.boxShadow = `0 12px 40px rgba(0, 0, 0, ${0.35 * p})`;
-  });
+  function applyDragX(dx) {
+    const p = clamp(Math.abs(dx) / 320, 0, 1);
+    appLayers().forEach((ov) => {
+      ov.style.transition = "none";
+      ov.style.transform = `translate3d(${dx}px, 0, 0) scale(${1 - p * 0.12})`;
+      ov.style.borderRadius = 54 * clamp(p * 3, 0, 1) + "px";
+      ov.style.opacity = String(1 - p * 0.35);
+    });
+  }
 
-  function endAppDrag() {
-    if (!appDrag) return;
-    const ad = appDrag;
-    appDrag = null;
-    if (!activeApp) return;
-
-    if (ad.d > 110 || ad.v > 0.5) {
-      closeApp();
-    } else {
-      const ov = activeApp.ov;
+  function springBack() {
+    appLayers().forEach((ov) => {
       ov.style.transition = `transform 0.4s ${EASE}, border-radius 0.4s ease, box-shadow 0.4s ease`;
       ov.style.transform = "translate3d(0, 0, 0) scale(1)";
       ov.style.borderRadius = "0px";
       ov.style.boxShadow = "none";
+      ov.style.opacity = "1";
+    });
+  }
+
+  function navBegin(id, type, x, y, target) {
+    if (!activeApp || navG || appClosing) return;
+    if (!inNavBand(y)) return;
+    if (target && target.closest && target.closest(NAV_IGNORE)) return;
+    navG = {
+      id,
+      type,
+      sx: x,
+      sy: y,
+      lastX: x,
+      lastY: y,
+      lastT: performance.now(),
+      v: 0,
+      vx: 0,
+      d: 0,
+      dx: 0,
+      mode: null, // "v" = swipe-up, "h" = swipe kiri/kanan
+      edgeStart: !!edgeSide(x) && !!backTarget(), // sentuhan tepi dimiliki gesture back
+      claimed: false,
+    };
+    setNavHot(true);
+  }
+
+  function navMove(id, x, y, evt) {
+    if (!navG || navG.id !== id || !activeApp) return;
+    const dy = navG.sy - y; // positif = ke atas
+    const dx = x - navG.sx;
+
+    if (!navG.claimed) {
+      if (dy > NAV.INTENT && dy > Math.abs(dx) * 0.8) {
+        navG.claimed = true; // niat swipe-up terdeteksi -> project yang menang
+        navG.mode = "v";
+      } else if (!navG.edgeStart && Math.abs(dx) > NAV.INTENT * 1.5 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        navG.claimed = true; // niat swipe kiri/kanan di bar bawah
+        navG.mode = "h";
+      } else if (dy < -NAV.CANCEL_X) {
+        navG = null; // geser ke bawah: lepas, biarkan tap/scroll normal
+        setNavHot(false);
+        return;
+      } else {
+        return;
+      }
+      navG.lastX = x;
+      navG.lastY = y;
+      navG.lastT = performance.now();
+    }
+
+    // Cegah scroll / pull-to-refresh / back-swipe browser
+    if (evt && evt.cancelable) evt.preventDefault();
+
+    const now = performance.now();
+    const dt = now - navG.lastT;
+    if (dt > 0) {
+      navG.v = (navG.lastY - y) / dt;
+      navG.vx = (x - navG.lastX) / dt;
+    }
+    navG.lastX = x;
+    navG.lastY = y;
+    navG.lastT = now;
+    if (navG.mode === "h") {
+      navG.dx = dx / frameScale;
+      applyDragX(navG.dx);
+    } else {
+      navG.d = Math.max(0, dy / frameScale);
+      applyDrag(navG.d);
     }
   }
-  homeGesture.addEventListener("pointerup", endAppDrag);
-  homeGesture.addEventListener("pointercancel", endAppDrag);
+
+  function navEnd(id) {
+    if (!navG || navG.id !== id) return;
+    const g = navG;
+    navG = null;
+    setNavHot(false);
+    if (!g.claimed || !activeApp) return;
+    if (g.mode === "h") {
+      const ax = Math.abs(g.dx);
+      const fast = Math.abs(g.vx) > NAV.SIDE_VEL && ax > NAV.SIDE_FLICK_MIN;
+      if (ax > NAV.SIDE_DIST || fast) closeApp({ dir: g.dx < 0 ? -1 : 1 });
+      else springBack();
+      return;
+    }
+    if (g.d > NAV.CLOSE_DIST || (g.v > NAV.CLOSE_VEL && g.d > NAV.FLICK_MIN)) closeApp();
+    else springBack();
+  }
+
+  // --- Touch ---
+  frame.addEventListener(
+    "touchstart",
+    (e) => {
+      if (e.touches.length !== 1) {
+        if (navG) navEnd(navG.id);
+        return;
+      }
+      const t = e.touches[0];
+      navBegin("t" + t.identifier, "touch", t.clientX, t.clientY, e.target);
+    },
+    { passive: true, capture: true },
+  );
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!navG || navG.type !== "touch") return;
+      const t = Array.from(e.touches).find(
+        (x) => "t" + x.identifier === navG.id,
+      );
+      if (t) navMove(navG.id, t.clientX, t.clientY, e);
+    },
+    { passive: false }, // wajib non-passive agar preventDefault berfungsi
+  );
+  const touchDone = (e) => {
+    if (!navG || navG.type !== "touch") return;
+    const t = Array.from(e.changedTouches).find(
+      (x) => "t" + x.identifier === navG.id,
+    );
+    if (t) navEnd(navG.id);
+  };
+  document.addEventListener("touchend", touchDone, { passive: true });
+  document.addEventListener("touchcancel", touchDone, { passive: true });
+
+  // --- Mouse (desktop) + hover ---
+  frame.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      navBegin("m", "mouse", e.clientX, e.clientY, e.target);
+    },
+    true,
+  );
+  window.addEventListener("pointermove", (e) => {
+    if (e.pointerType !== "mouse") return;
+    if (navG && navG.type === "mouse") {
+      navMove("m", e.clientX, e.clientY, e);
+    } else if (!navG) {
+      const over = frame.contains(e.target) && inNavBand(e.clientY);
+      setNavHot(over && (activeApp || state === "lock"));
+    }
+  });
+  const mouseDone = (e) => {
+    if (e.pointerType === "mouse") navEnd("m");
+  };
+  window.addEventListener("pointerup", mouseDone);
+  window.addEventListener("pointercancel", mouseDone);
+  window.addEventListener("blur", () => {
+    if (navG) navEnd(navG.id);
+  });
+  document.documentElement.addEventListener("pointerleave", () => {
+    if (navG && navG.type === "mouse") navEnd("m");
+    else if (!navG) setNavHot(false);
+  });
+
+  // Long-press di area bawah (Android) jangan memunculkan menu sistem
+  frame.addEventListener("contextmenu", (e) => {
+    if (activeApp && inNavBand(e.clientY)) e.preventDefault();
+  });
+
+  /* ===== 7b. EDGE SWIPE BACK GLOBAL (kembali bertahap, level demi level) =====
+     Usap dari tepi kiri/kanan ke arah tengah:
+       Level 1 (sub-view: album, preview, modal, detail...) -> tutup sub-view teratas saja
+       Level 2 (halaman utama app)                          -> keluar app (sub-view selalu ditutup dulu).
+                                                               Keluar app juga bisa lewat bottom bar
+       Passcode                                             -> kembali ke lock screen
+     Sub-view baru otomatis terdeteksi jika berupa .app-overlay dan punya tombol
+     [data-back] / .album-back / .pv-back. Untuk modal biasa pakai
+     window.registerBack(elemen, fungsiTutup). */
+  const backRegistry = [];
+  window.registerBack = (el, close, isOpen) =>
+    backRegistry.push({ el, close, isOpen });
+
+  const zOf = (el) => parseInt(getComputedStyle(el).zIndex, 10) || 0;
+
+  // Apa yang akan ditutup oleh "back" saat ini? (null = tidak ada, biarkan normal)
+  function backTarget() {
+    if (appClosing) return null;
+    if (activeApp) {
+      const subs = new Set(appLayers().slice(1));
+      backRegistry.forEach((r) => {
+        const open = r.isOpen ? r.isOpen() : r.el.classList.contains("open");
+        if (open) subs.add(r.el);
+      });
+      const top = Array.from(subs).sort((a, b) => zOf(b) - zOf(a))[0];
+      return top ? { kind: "sub", el: top } : { kind: "app-root" };
+    }
+    if (state === "passcode") return { kind: "passcode" };
+    return null;
+  }
+
+  function performBack(t) {
+    if (!t) return;
+    if (t.kind === "passcode") return closePasscode();
+    if (t.kind === "app-root") return closeApp(); // halaman utama: keluar app
+    const reg = backRegistry.find((r) => r.el === t.el);
+    if (reg && reg.close) return reg.close();
+    const btn = t.el.querySelector("[data-back], .album-back, .pv-back");
+    if (btn) btn.click();
+    else t.el.classList.remove("open");
+  }
+  window.goBack = () => performBack(backTarget());
+
+  // Sisi tepi (l/r) tempat sentuhan dimulai, dengan toleransi sedikit di luar bingkai
+  function edgeSide(x) {
+    const r = frame.getBoundingClientRect();
+    const left = Math.max(r.left, 0);
+    const right = Math.min(r.right, window.innerWidth);
+    const w = NAV.EDGE * frameScale;
+    if (x >= left - 30 && x - left <= w) return "l";
+    if (x <= right + 30 && right - x <= w) return "r";
+    return null;
+  }
+
+  // Indikator chevron saat usap dari tepi
+  const edgeHint = document.createElement("div");
+  edgeHint.className = "edge-hint";
+  edgeHint.innerHTML =
+    '<svg width="14" height="22" viewBox="0 0 12 20" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18L2 10L10 2"/></svg>';
+  frame.appendChild(edgeHint);
+
+  let edgeG = null;
+  let edgeClaimedAt = -1e9; // kapan gesture tepi terakhir aktif (untuk meredam back ganda dari OS)
+
+  function setEdgeHint(side, d, y, show) {
+    const fr = frame.getBoundingClientRect();
+    const p = clamp(d / NAV.EDGE_DIST, 0, 1);
+    const sgn = side === "l" ? 1 : -1;
+    edgeHint.classList.toggle("r", side === "r");
+    edgeHint.style.top = (y - fr.top) / frameScale + "px";
+    edgeHint.style.opacity = show ? String(0.25 + p * 0.75) : "0";
+    edgeHint.style.transform = `translate3d(${sgn * Math.min(d * 0.45, 46)}px, -50%, 0) scale(${0.7 + p * 0.3})`;
+  }
+
+  function edgeBegin(id, type, x, y, evt) {
+    if (edgeG) return;
+    const t = backTarget();
+    const side = t && edgeSide(x);
+    if (!side) return;
+    edgeG = {
+      id,
+      type,
+      side,
+      target: t,
+      sx: x,
+      sy: y,
+      lastX: x,
+      lastT: performance.now(),
+      vx: 0,
+      d: 0,
+      claimed: false,
+    };
+    // Sentuhan tepi milik gesture back: jangan bocor ke gesture lain (mis. geser foto)
+    if (evt && evt.stopPropagation) evt.stopPropagation();
+  }
+
+  function edgeVisual(g) {
+    const sgn = g.side === "l" ? 1 : -1;
+    if (g.target.kind === "sub") {
+      const el = g.target.el;
+      el.style.transition = "none";
+      el.style.transform = `translate3d(${sgn * g.d}px, 0, 0)`;
+      el.style.boxShadow = `${-sgn * 10}px 0 40px rgba(0,0,0,${0.35 * clamp(g.d / 200, 0, 1)})`;
+    } else if (g.target.kind === "app-root") {
+      // halaman utama app ikut tergeser mengikuti jari -> melepas di atas ambang = keluar app
+      const el = activeApp.ov;
+      el.style.transition = "none";
+      el.style.transform = `translate3d(${sgn * g.d}px, 0, 0)`;
+      el.style.boxShadow = `${-sgn * 10}px 0 40px rgba(0,0,0,${0.35 * clamp(g.d / 200, 0, 1)})`;
+    }
+  }
+
+  function edgeRelease(g, commit) {
+    setEdgeHint(g.side, 0, g.sy, false);
+    const sgn = g.side === "l" ? 1 : -1;
+    const t = g.target;
+    const el = t.kind === "sub" ? t.el : t.kind === "app-root" && activeApp ? activeApp.ov : null;
+
+    if (commit && t.kind === "sub") {
+      el.style.transition = `transform 0.26s ${EASE}, opacity 0.22s ease 0.04s`;
+      el.style.transform = `translate3d(${sgn * 470}px, 0, 0)`;
+      el.style.opacity = "0";
+      setTimeout(() => {
+        performBack(t);
+        setTimeout(() => {
+          if (!el.classList.contains("open")) el.style.cssText = "";
+        }, 360);
+      }, 240);
+      return;
+    }
+    if (commit && t.kind === "app-root" && activeApp) {
+      closeApp({ dir: sgn }); // keluar menyamping searah usapan
+      return;
+    }
+    if (commit && t.kind === "passcode") {
+      performBack(t);
+      return;
+    }
+    if (el) {
+      el.style.transition = `transform 0.35s ${EASE}, box-shadow 0.35s ease`;
+      el.style.transform = "translate3d(0, 0, 0)";
+      el.style.boxShadow = "none";
+      setTimeout(() => {
+        if (el.classList.contains("open") && !edgeG && !navG) el.style.cssText = "";
+      }, 380);
+    }
+  }
+
+  function edgeMove(id, x, y, evt) {
+    if (!edgeG || edgeG.id !== id) return;
+    const g = edgeG;
+    const dxRaw = x - g.sx;
+    const inward = g.side === "l" ? dxRaw : -dxRaw; // positif = menuju tengah
+    const dy = y - g.sy;
+
+    if (!g.claimed) {
+      if (navG && navG.claimed) {
+        edgeG = null; // swipe-up bottom bar sudah terklaim lebih dulu
+        return;
+      }
+      if (inward > NAV.INTENT * 1.5 && inward > Math.abs(dy) * 1.2) {
+        g.claimed = true;
+        edgeClaimedAt = performance.now();
+        if (navG && !navG.claimed) {
+          navG = null; // tepi menang untuk gerak horizontal ke tengah
+          setNavHot(false);
+        }
+        g.lastX = x;
+        g.lastT = performance.now();
+      } else if (Math.abs(dy) > NAV.CANCEL_X && Math.abs(dy) > inward) {
+        edgeG = null; // dominan vertikal: biarkan scroll / swipe-up bottom bar
+        return;
+      } else if (inward < -NAV.CANCEL_X) {
+        edgeG = null; // menjauhi tengah
+        return;
+      } else {
+        return;
+      }
+    }
+
+    if (evt && evt.cancelable) evt.preventDefault(); // blokir back bawaan browser/OS
+
+    const now = performance.now();
+    const dt = now - g.lastT;
+    if (dt > 0) g.vx = ((x - g.lastX) / dt) * (g.side === "l" ? 1 : -1);
+    g.lastX = x;
+    g.lastT = now;
+    g.d = Math.max(0, inward / frameScale);
+    edgeVisual(g);
+    setEdgeHint(g.side, g.d, y, true);
+  }
+
+  function edgeEnd(id) {
+    if (!edgeG || edgeG.id !== id) return;
+    const g = edgeG;
+    edgeG = null;
+    if (!g.claimed) return;
+    edgeClaimedAt = performance.now();
+    const commit =
+      g.d > NAV.EDGE_DIST || (g.vx > NAV.EDGE_VEL && g.d > NAV.EDGE_FLICK_MIN);
+    edgeRelease(g, commit);
+  }
+
+  // --- Touch ---
+  frame.addEventListener(
+    "touchstart",
+    (e) => {
+      if (e.touches.length !== 1) {
+        if (edgeG) edgeEnd(edgeG.id);
+        return;
+      }
+      const t = e.touches[0];
+      edgeBegin("t" + t.identifier, "touch", t.clientX, t.clientY, e);
+    },
+    { passive: true, capture: true },
+  );
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!edgeG || edgeG.type !== "touch") return;
+      const t = Array.from(e.touches).find((x) => "t" + x.identifier === edgeG.id);
+      if (t) edgeMove(edgeG.id, t.clientX, t.clientY, e);
+    },
+    { passive: false },
+  );
+  const edgeTouchDone = (e) => {
+    if (!edgeG || edgeG.type !== "touch") return;
+    const t = Array.from(e.changedTouches).find((x) => "t" + x.identifier === edgeG.id);
+    if (t) edgeEnd(edgeG.id);
+  };
+  document.addEventListener("touchend", edgeTouchDone, { passive: true });
+  document.addEventListener("touchcancel", edgeTouchDone, { passive: true });
+
+  // --- Mouse (desktop) ---
+  frame.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      edgeBegin("em", "mouse", e.clientX, e.clientY, e);
+    },
+    true,
+  );
+  window.addEventListener("pointermove", (e) => {
+    if (e.pointerType === "mouse" && edgeG && edgeG.type === "mouse")
+      edgeMove("em", e.clientX, e.clientY, e);
+  });
+  const edgeMouseDone = (e) => {
+    if (e.pointerType === "mouse") edgeEnd("em");
+  };
+  window.addEventListener("pointerup", edgeMouseDone);
+  window.addEventListener("pointercancel", edgeMouseDone);
+  window.addEventListener("blur", () => {
+    if (edgeG) edgeEnd(edgeG.id);
+  });
+
+  /* ---- Back bawaan browser/OS (tombol back, gesture back Android, PWA) ----
+     Entri history "penjaga" dipasang saat interaksi pertama (Chrome mengabaikan
+     entri yang dibuat tanpa interaksi user). Saat back terpicu dan masih ada
+     level di dalam project, kembali satu level saja dan project tidak ditinggalkan.
+     Jika sudah tidak ada level (lock/home), back dibiarkan keluar seperti biasa. */
+  let guardArmed = false;
+  function armBackGuard() {
+    if (guardArmed) return;
+    guardArmed = true;
+    try {
+      history.pushState({ navGuard: true }, "");
+    } catch (_) {}
+  }
+  ["pointerdown", "touchstart", "keydown"].forEach((ev) =>
+    window.addEventListener(ev, armBackGuard, { once: true, capture: true, passive: true }),
+  );
+  window.addEventListener("popstate", () => {
+    if (!guardArmed) return;
+    // Usapan tepi sudah ditangani gesture project. Di HP, OS sering ikut menembakkan
+    // "back" untuk usapan yang sama -> abaikan agar satu usapan = satu level.
+    if ((edgeG && edgeG.claimed) || performance.now() - edgeClaimedAt < 900) {
+      try {
+        history.pushState({ navGuard: true }, ""); // pasang lagi penjaganya
+      } catch (_) {}
+      return;
+    }
+    const t = backTarget();
+    if (t) {
+      performBack(t);
+      try {
+        history.pushState({ navGuard: true }, ""); // pasang lagi penjaganya
+      } catch (_) {}
+    } else {
+      guardArmed = false; // tidak ada level internal -> lanjutkan keluar seperti biasa
+      history.back();
+    }
+  });
+
+  // Tombol back/close memakai respon hover/active yang sama dengan bottom bar
+  document
+    .querySelectorAll(".close-btn, .album-back, .pv-back")
+    .forEach((el) => el.classList.add("nav-btn"));
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && activeApp) closeApp();
+    if (e.key !== "Escape") return;
+    const t = backTarget();
+    if (t && t.kind !== "app-root") performBack(t); // kembali satu level dulu
+    else if (activeApp) closeApp(); // di halaman utama app: keluar app
   });
 
   /* ===== 8. GLOBAL FAVORITE LOGIC ===== */
-  let favoritePhotos = ["2", "3", "6", "8", "11", "13", "14", "17", "20", "23", "24"];
+  let favoritePhotos = ["2", "3", "6", "8", "11", "13", "14", "17", "20", "23", "24", "v7"];
+
+  // Thumbnail video (photos/t1.png) dipetakan ke id video "v1"
+  function favId(src) {
+    if (!src) return "";
+    const name = src.split("?")[0].split("/").pop().replace(/\.(png|jpg)$/i, "");
+    const m = name.match(/^t(\d+)$/);
+    return m ? "v" + m[1] : name;
+  }
 
   function isFavorite(src) {
     if (!src) return false;
-    const fileName = src
-      .split("/")
-      .pop()
-      .replace(".png", "")
-      .replace(".jpg", "");
-    return favoritePhotos.includes(fileName);
+    return favoritePhotos.includes(favId(src));
   }
 
   // <img> nggak bisa punya ::after, jadi tiap thumbnail dibungkus wrapper
   // dan ikon love-nya berupa elemen <span> sungguhan di dalam wrapper.
+  const HEART_SVG =
+    '<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+
   function ensureThumbWrap(img) {
     let w = img.parentElement;
     if (
@@ -440,15 +971,20 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!w.querySelector(".fav-heart")) {
       const h = document.createElement("span");
       h.className = "fav-heart";
-      h.textContent = "❤";
+      h.innerHTML = HEART_SVG;
       w.appendChild(h);
     }
     return w;
   }
 
-  const favNum = (id) => parseInt(id, 10) || 0;
-  const getFavoriteIds = () =>
-    [...favoritePhotos].sort((a, b) => favNum(a) - favNum(b));
+  // urut sesuai urutan di Recents (foto & video tercampur)
+  const getFavoriteIds = () => {
+    const order = (id) => {
+      const i = albumData.Recents.indexOf(id);
+      return i === -1 ? 9999 : i;
+    };
+    return [...favoritePhotos].sort((a, b) => order(a) - order(b));
+  };
 
   function refreshAllFavoriteUI() {
     document.querySelectorAll(".photo-item").forEach((img) => {
@@ -513,7 +1049,7 @@ document.addEventListener("DOMContentLoaded", () => {
       "25",
       "v7",
     ],
-    Favorites: ["2", "3", "6", "8", "11", "13", "14", "17", "20", "23", "24"],
+    Favorites: ["2", "3", "6", "8", "11", "13", "14", "17", "20", "23", "24", "v7"],
     "4boiz": [
       "13",
       "14",
@@ -815,16 +1351,11 @@ document.addEventListener("DOMContentLoaded", () => {
     heartBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       const currentItem = currentPhotoList[currentPhotoIndex];
-      if (currentItem && currentItem.videoSrc) return;
 
       const currentSrc = currentItem ? currentItem.src : null;
       if (!currentSrc) return;
 
-      const fileName = currentSrc
-        .split("/")
-        .pop()
-        .replace(".png", "")
-        .replace(".jpg", "");
+      const fileName = favId(currentSrc);
 
       if (favoritePhotos.includes(fileName)) {
         favoritePhotos = favoritePhotos.filter((id) => id !== fileName);
